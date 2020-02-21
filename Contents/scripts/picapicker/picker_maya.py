@@ -1,8 +1,9 @@
 # # -*- coding: utf-8 -*-
-from pppicker.vendor.Qt import QtCore, QtGui, QtWidgets
-from pppicker.node import Node
-from pppicker.view import View
+from .vendor.Qt import QtCore, QtGui, QtWidgets
+from .view import View
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+import maya.OpenMayaUI as OpenMayaUI
+from shiboken2 import wrapInstance
 
 
 class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
@@ -31,6 +32,13 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
     def _context_menu(self, event):
         _menu = QtWidgets.QMenu()
         _menu.addAction('Add partition', self.hoge)
+
+
+        white_color = QtWidgets.QAction('White', checkable=True)
+        black_color = QtWidgets.QAction('Black', checkable=True)
+        _menu.addAction(white_color)
+        _menu.addAction(black_color)
+
         _menu.addAction('Edit', self.hoge)
 
         cursor = QtGui.QCursor.pos()
@@ -47,20 +55,7 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 ---   SHOW WINDOW
 ============================================================
 '''
-
-
-def main(parent=None):
-    from sys import exit, argv
-    app = QtWidgets.QApplication(argv)
-    nodeWindow = Window(parent)
-    nodeWindow.show()
-    exit(app.exec_())
-
-
-
-def maya_main():
-    import maya.OpenMayaUI as OpenMayaUI
-    from shiboken2 import wrapInstance
+def main():
     mainWindowPtr = OpenMayaUI.MQtUtil.mainWindow()
     mayaWindow = wrapInstance(long(mainWindowPtr), QtWidgets.QWidget)
     nodeWindow = Window()

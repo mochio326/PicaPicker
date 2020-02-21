@@ -63,12 +63,35 @@ class View(QtWidgets.QGraphicsView):
         self._init_alignment_params()
 
         orign = self.mapToScene(0, 0)
-        self.x_snap_guide = Line(orign, orign)
-        self.x_snap_guide.hide()
-        self.add_item(self.x_snap_guide)
-        self.y_snap_guide = Line(orign, orign)
-        self.add_item(self.y_snap_guide)
-        self.y_snap_guide.hide()
+        # self.x_snap_guide = Line(orign, orign)
+        # self.x_snap_guide.hide()
+        # self.add_item(self.x_snap_guide)
+        # self.y_snap_guide = Line(orign, orign)
+        # self.add_item(self.y_snap_guide)
+        # self.y_snap_guide.hide()
+
+        self.x_snap_guide = None
+        self.y_snap_guide = None
+
+    def del_node_snap_guide(self, type):
+        if type == 'x' and self.x_snap_guide is not None:
+            self.remove_item(self.x_snap_guide)
+            self.x_snap_guide = None
+        if type == 'y' and self.y_snap_guide is not None:
+            self.remove_item(self.y_snap_guide)
+            self.y_snap_guide = None
+
+
+    def show_node_snap_guide(self, pos_a, pos_b, type):
+        self.del_node_snap_guide(type)
+
+        _snap_guide = Line(pos_a, pos_b)
+        self.add_item(_snap_guide)
+
+        if type == 'x':
+            self.x_snap_guide = _snap_guide
+        if type == 'y':
+            self.y_snap_guide = _snap_guide
 
     def _init_alignment_params(self):
         self.alignment_start_pos = None
@@ -115,6 +138,8 @@ class View(QtWidgets.QGraphicsView):
         for _n in self.drop_node:
             self.add_item(_n)
             _n.setOpacity(0.5)
+            _n.node_snap.connect(self.show_node_snap_guide)
+            _n.del_node_snap.connect(self.del_node_snap_guide)
         self.update()
         event.setAccepted(True)
 

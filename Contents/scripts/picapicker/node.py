@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 import uuid
-from .line import Line
 from maya import cmds
 
 
@@ -12,6 +11,9 @@ class Node(QtWidgets.QGraphicsObject):
     moveing = QtCore.Signal()
     # 移動後に発動
     pos_changed = QtCore.Signal()
+
+    node_snap = QtCore.Signal(QtCore.QPointF, QtCore.QPointF, str)
+    del_node_snap = QtCore.Signal(str)
 
     @classmethod
     def scene_nodes_iter(cls, scene):
@@ -111,18 +113,15 @@ class Node(QtWidgets.QGraphicsObject):
                 x_node, y_node = self.search_snap_node()
                 if x_node is not None:
                     self.setX(x_node.x())
-                    self.scene().views()[0].x_snap_guide.show()
-                    self.scene().views()[0].x_snap_guide.point_a = self.center
-                    self.scene().views()[0].x_snap_guide.point_b = x_node.center
+                    self.node_snap.emit(self.center, x_node.center, 'x')
                 else:
-                    self.scene().views()[0].x_snap_guide.hide()
+                    self.del_node_snap.emit('x')
+
                 if y_node is not None:
                     self.setY(y_node.y())
-                    self.scene().views()[0].y_snap_guide.show()
-                    self.scene().views()[0].y_snap_guide.point_a = self.center
-                    self.scene().views()[0].y_snap_guide.point_b = y_node.center
+                    self.node_snap.emit(self.center, y_node.center, 'y')
                 else:
-                    self.scene().views()[0].y_snap_guide.hide()
+                    self.del_node_snap.emit('y')
             self.scene().update()
 
     def mouseReleaseEvent(self, event):
@@ -139,8 +138,8 @@ class Node(QtWidgets.QGraphicsObject):
             self.moveing.emit()
             self.pos_changed.emit()
 
-            self.scene().views()[0].x_snap_guide.hide()
-            self.scene().views()[0].y_snap_guide.hide()
+            self.del_node_snap.emit('x')
+            self.del_node_snap.emit('y')
 
     def hoverEnterEvent(self, event):
         QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), self._tooltip)

@@ -83,6 +83,8 @@ class Line(QtWidgets.QGraphicsPathItem):
         self.setPen(self.pen)
         self.setOpacity(0.7)
 
+        self.update_path()
+
     def delete(self):
         self.scene().views()[0].remove_item(self)
 
