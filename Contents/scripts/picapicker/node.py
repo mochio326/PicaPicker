@@ -15,14 +15,6 @@ class Node(QtWidgets.QGraphicsObject):
     node_snap = QtCore.Signal(QtCore.QPointF, QtCore.QPointF, str)
     del_node_snap = QtCore.Signal(str)
 
-    @classmethod
-    def scene_nodes_iter(cls, scene):
-        # シーン内のノードのみ取得
-        for _i in scene.items():
-            if not isinstance(_i, cls):
-                continue
-            yield _i
-
     @property
     def center(self):
         center = QtCore.QPointF(self.rect.x() + self.rect.width() / 2, self.rect.y() + self.rect.height() / 2)
@@ -124,12 +116,17 @@ class Node(QtWidgets.QGraphicsObject):
                     self.del_node_snap.emit('y')
             self.scene().update()
 
+    @property
+    def view(self):
+        return self.scene().views()[0]
+
+
     def mouseReleaseEvent(self, event):
         if self.drag:
             self.drag = False
             # ノードを現在の描画順を維持したまま数値を整頓
             node_z_list = []
-            for _n in self.scene_nodes_iter(self.scene()):
+            for _n in self.view.get_nodes(self):
                 node_z_list.append([_n.zValue(), _n])
             node_z_list = sorted(node_z_list, key=lambda x: x[0])
             for _i, _n in enumerate(node_z_list):
@@ -150,13 +147,14 @@ class Node(QtWidgets.QGraphicsObject):
         super(Node, self).hoverMoveEvent(event)
 
     def delete(self):
-        self.scene().views()[0].remove_item(self)
+        self.view.remove_item(self)
 
     def search_snap_node(self):
         _threshold = 10
         _x_candidate = {}
         _y_candidate = {}
-        for _n in Node.scene_nodes_iter(self.scene()):
+
+        for _n in self.view.get_nodes(self, True):
             if self == _n:
                 continue
             _x_deff = abs(_n.center.x() - self.center.x())
