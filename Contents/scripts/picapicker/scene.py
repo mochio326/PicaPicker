@@ -28,6 +28,15 @@ class Scene(QtWidgets.QGraphicsScene):
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, _flg)
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, _flg)
 
+    def edit_bg_image_opacity(self, value):
+        for _i in self.items():
+            if isinstance(_i, BgNode):
+                _i.setOpacity(value)
+
+
+    def get_selected_pick_nodes(self):
+        return [_n for _n in self.selectedItems() if isinstance(_n, PickNode)]
+
     def drawBackground(self, painter, rect):
 
         if not self.draw_bg_grid:

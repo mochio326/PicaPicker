@@ -66,13 +66,14 @@ class View(QtWidgets.QGraphicsView):
         _menu.addSeparator()
 
         _pick = _menu.addMenu('PickButton')
-        _pick.addAction('Change color', self.hoge)
+        _pick.addAction('Edit color', self.node_change_color)
 
         _bgi = _menu.addMenu('Image')
         _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
         _lock_bg_image_action.setChecked(self.scene().lock_bg_image)
         _lock_bg_image_action.triggered.connect(_lock_bg_image_checked)
         _bgi.addAction(_lock_bg_image_action)
+        _bgi.addAction('Edit opacity', self.bg_edit_opacity)
 
         _bgg = _menu.addMenu('Grid')
         _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
@@ -82,13 +83,16 @@ class View(QtWidgets.QGraphicsView):
 
         _menu.exec_(cursor)
 
-    def hoge(self):
+    def bg_edit_opacity(self):
+        self.scene().edit_bg_image_opacity(0.5)
+
+    def node_change_color(self):
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(60, 60, 60, 255), self)
-        if color.isValid():
-            print color
-            # self.ui.label.setPalette(QtGui.QPalette(color))
-            # self.ui.label.setText(color.name())
-            # self.ui.label.setAutoFillBackground(True)
+        if not color.isValid():
+            return
+        for _n in self.scene().get_selected_pick_nodes():
+            _n.bg_color = color
+            _n.update()
 
     def get_nodes(self, cls, display_only=False):
         if display_only:
