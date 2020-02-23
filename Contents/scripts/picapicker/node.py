@@ -17,7 +17,9 @@ class Node(QtWidgets.QGraphicsObject):
 
     @property
     def view(self):
-        return self.scene().views()[0]
+        for _v in self.scene().views():
+            if _v.isInteractive():
+                return _v
 
     @property
     def center(self):
@@ -149,11 +151,11 @@ class Node(QtWidgets.QGraphicsObject):
         super(Node, self).hoverMoveEvent(event)
 
     def delete(self):
-        self.view.remove_item(self)
+        self.scene().remove_item(self)
 
     def search_snap_node(self):
 
-        if not self.view.enable_edit:
+        if not self.scene().enable_edit:
             return None, None
 
         _threshold = 10

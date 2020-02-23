@@ -36,38 +36,23 @@ def get_color(node):
         return cmds.colorIndex(color_index, q=True)
 
 
-class View(QtWidgets.QGraphicsView):
-
-    def __init__(self, scene, parent):
-        super(View, self).__init__(parent)
-        self.setObjectName('View')
-        self.setScene(scene)
-        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-        self.setViewportUpdateMode(QtWidgets.QGraphicsView.SmartViewportUpdate)
-        self.drag = False
-        self.add_items = []
-        self._operation_history = [None]
-        self._current_operation_history = 0
-        self.setStyleSheet('background-color: rgb(40,40,40);')
-
-        self.scene().selectionChanged.connect(self.select_nodes)
-        self.drop_node = None
-
-        self.setAcceptDrops(True)
-
-        self.press_alignment_key = False
-        self.alignment_start_pos = None
-        self.alignment_type = 'free'
-        self.alignment_mode = False
-        self.alignment_guide_path = None
-        self._init_alignment_params()
-        self.prev_pos = None
-        
-        self._snap_guide = {'x': None, 'y': None}
-
+class Scene(QtWidgets.QGraphicsScene):
+    def __init__(self):
+        super(Scene, self).__init__()
+        self.selectionChanged.connect(self.select_nodes)
         self.enable_edit = True
         self.lock_bg_image = False
         self.draw_bg_grid = True
+
+        self.add_items = []
+
+    def select_nodes(self):
+        _select_nodes = []
+        for _item in self.selectedItems():
+            if not isinstance(_item, PickNode):
+                continue
+            _select_nodes.extend(_item.select_node)
+        cmds.select(_select_nodes)
 
     def enable_edit_change(self):
         for _i in self.items():
@@ -77,86 +62,6 @@ class View(QtWidgets.QGraphicsView):
                 _flg = self.enable_edit and not self.lock_bg_image
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, _flg)
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, _flg)
-
-    def del_node_snap_guide(self, type):
-        if self._snap_guide[type] is not None:
-            self.remove_item(self._snap_guide[type])
-            self._snap_guide[type] = None
-
-    def show_node_snap_guide(self, pos_a, pos_b, type):
-        self.del_node_snap_guide(type)
-        self._snap_guide[type] = Line(pos_a, pos_b)
-        self.add_item(self._snap_guide[type])
-
-    def _init_alignment_params(self):
-        self.alignment_start_pos = None
-        self.alignment_type = 'free'
-        self.alignment_guide_path = None
-        self.alignment_mode = False
-
-    def dragMoveEvent(self, event):
-        pos = self.mapToScene(event.pos())
-        for i, _n in enumerate(self.drop_node):
-            _n.setPos(pos.x() + (_n.rect.width() + 10) * i, pos.y())
-            _n.update()
-
-    def dragLeaveEvent(self, event):
-        """ドラッグが抜けた時の処理
-        """
-        if self.drop_node is not None:
-            for _n in self.drop_node:
-                self.remove_item(_n)
-            self.drop_node = None
-
-    def dragEnterEvent(self, event):
-
-        if not self.enable_edit:
-            return
-
-        pos = self.mapToScene(event.pos())
-
-        if event.mimeData().hasUrls() and event.mimeData().hasText():
-            self.drop_node = []
-            # 画像フォーマットかどうかチェックいれる
-            for url in event.mimeData().urls():
-                if hasattr(url, 'path'):  # PySide
-                    _path = re.sub("^/", "", url.path())
-                else:  # PySide2
-                    _path = re.sub("^file:///", "", url.url())
-                self.drop_node.append(BgNode(_path))
-        elif event.mimeData().hasText() and not event.mimeData().hasUrls():
-            text = event.mimeData().text()
-            text = text.split('\n')
-            self.drop_node = [drop_create_node(_t, pos) for _t in text]
-        else:
-            event.ignore()
-
-        if self.drop_node is None:
-            return
-        for _n in self.drop_node:
-            self.add_item(_n)
-            _n.setOpacity(0.5)
-            _n.node_snap.connect(self.show_node_snap_guide)
-            _n.end_node_snap.connect(self.del_node_snap_guide)
-        self.update()
-        event.setAccepted(True)
-
-    def dropEvent(self, event):
-        event.acceptProposedAction()
-        pos = self.mapToScene(event.pos())
-        for i, _n in enumerate(self.drop_node):
-            _n.setPos(pos.x() + (_n.rect.width() + 10) * i, pos.y())
-            _n.setOpacity(1)
-            _n.update()
-        self.drop_node = None
-
-    def select_nodes(self):
-        _select_nodes = []
-        for _item in self.scene().selectedItems():
-            if not isinstance(_item, PickNode):
-                continue
-            _select_nodes.extend(_item.select_node)
-        cmds.select(_select_nodes)
 
     def drawBackground(self, painter, rect):
 
@@ -198,6 +103,145 @@ class View(QtWidgets.QGraphicsView):
                 painter.setPen(pen)
             painter.drawLine(0, yc, scene_width, yc)
 
+    def add_item(self, widget):
+        if not isinstance(widget, list):
+            widget = [widget]
+        for _w in widget:
+            self.add_items.append(_w)
+            self.addItem(_w)
+
+            _shadow = QtWidgets.QGraphicsDropShadowEffect(self)
+            _shadow.setBlurRadius(10)
+            _shadow.setOffset(3, 3)
+            _shadow.setColor(QtGui.QColor(10, 10, 10, 150))
+            _w.setGraphicsEffect(_shadow)
+
+    def remove_item(self, widget):
+        if not isinstance(widget, list):
+            widget = [widget]
+        for _w in widget:
+            self.add_items.remove(_w)
+            self.removeItem(_w)
+
+    def clear(self):
+        self.clear()
+        self.add_items = []
+
+
+class View(QtWidgets.QGraphicsView):
+
+    def __init__(self, scene, parent):
+        super(View, self).__init__(parent)
+        self.setObjectName('View')
+        self.setScene(scene)
+        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.SmartViewportUpdate)
+        self.drag = False
+        self._operation_history = [None]
+        self._current_operation_history = 0
+        self.setStyleSheet('background-color: rgb(40,40,40);')
+
+        self.drop_node = None
+
+        self.setAcceptDrops(True)
+
+        self.press_alignment_key = False
+        self.alignment_start_pos = None
+        self.alignment_type = 'free'
+        self.alignment_mode = False
+        self.alignment_guide_path = None
+        self._init_alignment_params()
+        self.prev_pos = None
+        
+        self._snap_guide = {'x': None, 'y': None}
+
+
+    def get_nodes(self, cls, display_only=False):
+        if display_only:
+            _nodes = self.items(self.viewport().rect())
+        else:
+            _nodes = self.items()
+        return [_n for _n in _nodes if isinstance(_n, cls)]
+
+
+    def add_node_on_center(self, node):
+        self.scene().add_item(node)
+        _pos = self.mapToScene(self.width() / 2, self.height() / 2)
+        node.setPos(_pos)
+        node.update()
+
+    def del_node_snap_guide(self, type):
+        if self._snap_guide[type] is not None:
+            self.scene().remove_item(self._snap_guide[type])
+            self._snap_guide[type] = None
+
+    def show_node_snap_guide(self, pos_a, pos_b, type):
+        self.del_node_snap_guide(type)
+        self._snap_guide[type] = Line(pos_a, pos_b)
+        self.scene().add_item(self._snap_guide[type])
+
+    def _init_alignment_params(self):
+        self.alignment_start_pos = None
+        self.alignment_type = 'free'
+        self.alignment_guide_path = None
+        self.alignment_mode = False
+
+    def dragMoveEvent(self, event):
+        pos = self.mapToScene(event.pos())
+        for i, _n in enumerate(self.drop_node):
+            _n.setPos(pos.x() + (_n.rect.width() + 10) * i, pos.y())
+            _n.update()
+
+    def dragLeaveEvent(self, event):
+        """ドラッグが抜けた時の処理
+        """
+        if self.drop_node is not None:
+            for _n in self.drop_node:
+                self.scene().remove_item(_n)
+            self.drop_node = None
+
+    def dragEnterEvent(self, event):
+
+        if not self.scene().enable_edit:
+            return
+
+        pos = self.mapToScene(event.pos())
+
+        if event.mimeData().hasUrls() and event.mimeData().hasText():
+            self.drop_node = []
+            # 画像フォーマットかどうかチェックいれる
+            for url in event.mimeData().urls():
+                if hasattr(url, 'path'):  # PySide
+                    _path = re.sub("^/", "", url.path())
+                else:  # PySide2
+                    _path = re.sub("^file:///", "", url.url())
+                self.drop_node.append(BgNode(_path))
+        elif event.mimeData().hasText() and not event.mimeData().hasUrls():
+            text = event.mimeData().text()
+            text = text.split('\n')
+            self.drop_node = [drop_create_node(_t, pos) for _t in text]
+        else:
+            event.ignore()
+
+        if self.drop_node is None:
+            return
+        for _n in self.drop_node:
+            self.scene().add_item(_n)
+            _n.setOpacity(0.5)
+            _n.node_snap.connect(self.show_node_snap_guide)
+            _n.end_node_snap.connect(self.del_node_snap_guide)
+        self.update()
+        event.setAccepted(True)
+
+    def dropEvent(self, event):
+        event.acceptProposedAction()
+        pos = self.mapToScene(event.pos())
+        for i, _n in enumerate(self.drop_node):
+            _n.setPos(pos.x() + (_n.rect.width() + 10) * i, pos.y())
+            _n.setOpacity(1)
+            _n.update()
+        self.drop_node = None
+
     def wheelEvent(self, event):
         """
         Zooms the QGraphicsView in/out.
@@ -220,7 +264,7 @@ class View(QtWidgets.QGraphicsView):
 
         if event.modifiers() == QtCore.Qt.ShiftModifier:
 
-            if not self.enable_edit or len(self.scene().selectedItems()) < 2:
+            if not self.scene().enable_edit or len(self.scene().selectedItems()) < 2:
                 return
 
             self.press_alignment_key = True
@@ -231,7 +275,7 @@ class View(QtWidgets.QGraphicsView):
             self.alignment_start_pos = self.mapToScene(event.pos())
             self.alignment_mode = True
             self.alignment_guide_path = Line(self.alignment_start_pos, self.alignment_start_pos, self.alignment_type)
-            self.add_item(self.alignment_guide_path)
+            self.scene().add_item(self.alignment_guide_path)
             return
 
         if event.button() == QtCore.Qt.MiddleButton and event.modifiers() == QtCore.Qt.AltModifier:
@@ -323,7 +367,7 @@ class View(QtWidgets.QGraphicsView):
         self.focus(self.scene().selectedItems())
 
     def all_item_focus(self):
-        self.focus(self.add_items)
+        self.focus(self.items)
 
     def focus(self, items):
         if not items:
@@ -339,36 +383,6 @@ class View(QtWidgets.QGraphicsView):
         zoom_factor = zoom_factor * 0.9
         self.scale(zoom_factor, zoom_factor)
         self.centerOn(center)
-
-    def add_node_on_center(self, node):
-        self.add_item(node)
-        _pos = self.mapToScene(self.width() / 2, self.height() / 2)
-        node.setPos(_pos)
-        node.update()
-
-    def add_item(self, widget):
-        if not isinstance(widget, list):
-            widget = [widget]
-        for _w in widget:
-            self.add_items.append(_w)
-            self.scene().addItem(_w)
-
-            _shadow = QtWidgets.QGraphicsDropShadowEffect(self)
-            _shadow.setBlurRadius(10)
-            _shadow.setOffset(3, 3)
-            _shadow.setColor(QtGui.QColor(10, 10, 10, 150))
-            _w.setGraphicsEffect(_shadow)
-
-    def remove_item(self, widget):
-        if not isinstance(widget, list):
-            widget = [widget]
-        for _w in widget:
-            self.add_items.remove(_w)
-            self.scene().removeItem(_w)
-
-    def clear(self):
-        self.scene().clear()
-        self.add_items = []
 
     def _delete(self):
         for _n in self.scene().selectedItems():
@@ -451,13 +465,6 @@ class View(QtWidgets.QGraphicsView):
         for _n in _sel:
             _n.setX(_pos_dict[_n.id][0])
             _n.setY(_pos_dict[_n.id][1])
-
-    def get_nodes(self, cls, display_only=False):
-        if display_only:
-            _nodes = self.items(self.viewport().rect())
-        else:
-            _nodes = self.items()
-        return [_n for _n in _nodes if isinstance(_n, cls)]
 
 # -----------------------------------------------------------------------------
 # EOF

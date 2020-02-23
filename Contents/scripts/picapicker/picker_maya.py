@@ -1,6 +1,6 @@
 # # -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
-from .view import View
+from .view import View, Scene
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import maya.OpenMayaUI as OpenMayaUI
 from shiboken2 import wrapInstance
@@ -22,10 +22,10 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         hbox.setContentsMargins(2, 2, 2, 2)
         self.setLayout(hbox)
 
-        scene = QtWidgets.QGraphicsScene()
-        scene.setObjectName('Scene')
-        scene.setSceneRect(0, 0, 1000, 1000)
-        self.view = View(scene, self)
+        self.scene = Scene()
+        self.scene.setObjectName('Scene')
+        self.scene.setSceneRect(0, 0, 1000, 1000)
+        self.view = View(self.scene, self)
 
         hbox.addWidget(self.view)
 
@@ -33,25 +33,25 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         cursor = QtGui.QCursor.pos()
 
         def __enable_edit_checked():
-            self.view.enable_edit = _enable_edit_action.isChecked()
-            self.view.enable_edit_change()
+            self.scene.enable_edit = _enable_edit_action.isChecked()
+            self.scene.enable_edit_change()
 
         def _lock_bg_image_checked():
-            self.view.lock_bg_image = _lock_bg_image_action.isChecked()
-            self.view.enable_edit_change()
+            self.scene.lock_bg_image = _lock_bg_image_action.isChecked()
+            self.scene.enable_edit_change()
 
         def _draw_bg_grid_checked():
-            self.view.draw_bg_grid = _draw_bg_grid_action.isChecked()
+            self.scene.draw_bg_grid = _draw_bg_grid_action.isChecked()
 
 
         _menu = QtWidgets.QMenu()
 
         _enable_edit_action = QtWidgets.QAction('Enable edit', self, checkable=True)
-        _enable_edit_action.setChecked(self.view.enable_edit)
+        _enable_edit_action.setChecked(self.scene.enable_edit)
         _enable_edit_action.triggered.connect(__enable_edit_checked)
         _menu.addAction(_enable_edit_action)
 
-        if not self.view.enable_edit:
+        if not self.scene.enable_edit:
             _menu.exec_(cursor)
             return
 
@@ -62,13 +62,13 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
         _bgi = _menu.addMenu('Image')
         _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
-        _lock_bg_image_action.setChecked(self.view.lock_bg_image)
+        _lock_bg_image_action.setChecked(self.scene.lock_bg_image)
         _lock_bg_image_action.triggered.connect(_lock_bg_image_checked)
         _bgi.addAction(_lock_bg_image_action)
 
         _bgg = _menu.addMenu('Grid')
         _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
-        _draw_bg_grid_action.setChecked(self.view.draw_bg_grid)
+        _draw_bg_grid_action.setChecked(self.scene.draw_bg_grid)
         _draw_bg_grid_action.triggered.connect(_draw_bg_grid_checked)
         _bgg.addAction(_draw_bg_grid_action)
 
