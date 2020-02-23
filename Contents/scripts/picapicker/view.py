@@ -1,131 +1,8 @@
 # -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
-from .node import PickNode, BgNode
+from .node import BgNode
 from .line import Line
-from maya import cmds
 import re
-import cmath
-
-
-def drop_create_node(text, pos):
-    split_text = text.split('|')
-    # if len(split_text) != 2:
-    #     return
-    # class_name, node_name = split_text
-
-    node = cmds.ls(text)[0]
-    _color = get_color(node)
-    if _color is None:
-        bg_color = None
-    else:
-        _color = [int(_c * 255) for _c in _color]
-        bg_color = QtGui.QColor(_color[0], _color[1], _color[2])
-    n = PickNode(label=split_text[-1], bg_color=bg_color)
-    n.setPos(pos)
-    return n
-
-
-def get_color(node):
-    # 描画のオーバーライドの色
-    if not cmds.getAttr(node + '.overrideEnabled'):
-        return None
-    if cmds.getAttr(node + '.overrideRGBColors'):
-        return list(cmds.getAttr(node + '.overrideColorRGB')[0])
-    else:
-        color_index = cmds.getAttr(node + '.overrideColor')
-        return cmds.colorIndex(color_index, q=True)
-
-
-class Scene(QtWidgets.QGraphicsScene):
-    def __init__(self):
-        super(Scene, self).__init__()
-        self.selectionChanged.connect(self.select_nodes)
-        self.enable_edit = True
-        self.lock_bg_image = False
-        self.draw_bg_grid = True
-
-        self.add_items = []
-
-    def select_nodes(self):
-        _select_nodes = []
-        for _item in self.selectedItems():
-            if not isinstance(_item, PickNode):
-                continue
-            _select_nodes.extend(_item.select_node)
-        cmds.select(_select_nodes)
-
-    def enable_edit_change(self):
-        for _i in self.items():
-            if isinstance(_i, PickNode):
-                _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, self.enable_edit)
-            elif isinstance(_i, BgNode):
-                _flg = self.enable_edit and not self.lock_bg_image
-                _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, _flg)
-                _i.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, _flg)
-
-    def drawBackground(self, painter, rect):
-
-        if not self.draw_bg_grid:
-            return
-
-        scene_height = self.sceneRect().height()
-        scene_width = self.sceneRect().width()
-
-        # Pen.
-        pen = QtGui.QPen()
-        pen.setStyle(QtCore.Qt.SolidLine)
-        pen.setWidth(1)
-        pen.setColor(QtGui.QColor(80, 80, 80, 125))
-
-        sel_pen = QtGui.QPen()
-        sel_pen.setStyle(QtCore.Qt.SolidLine)
-        sel_pen.setWidth(1)
-        sel_pen.setColor(QtGui.QColor(125, 125, 125, 125))
-
-        grid_width = 20
-        grid_height = 20
-        grid_horizontal_count = int(round(scene_width / grid_width)) + 1
-        grid_vertical_count = int(round(scene_height / grid_height)) + 1
-
-        for x in range(0, grid_horizontal_count):
-            xc = x * grid_width
-            if x % 5 == 0:
-                painter.setPen(sel_pen)
-            else:
-                painter.setPen(pen)
-            painter.drawLine(xc, 0, xc, scene_height)
-
-        for y in range(0, grid_vertical_count):
-            yc = y * grid_height
-            if y % 5 == 0:
-                painter.setPen(sel_pen)
-            else:
-                painter.setPen(pen)
-            painter.drawLine(0, yc, scene_width, yc)
-
-    def add_item(self, widget):
-        if not isinstance(widget, list):
-            widget = [widget]
-        for _w in widget:
-            self.add_items.append(_w)
-            self.addItem(_w)
-
-            _shadow = QtWidgets.QGraphicsDropShadowEffect(self)
-            _shadow.setBlurRadius(10)
-            _shadow.setOffset(3, 3)
-            _shadow.setColor(QtGui.QColor(10, 10, 10, 150))
-            _w.setGraphicsEffect(_shadow)
-
-    def remove_item(self, widget):
-        if not isinstance(widget, list):
-            widget = [widget]
-        for _w in widget:
-            self.add_items.remove(_w)
-            self.removeItem(_w)
-
-    def clear(self):
-        self.clear()
-        self.add_items = []
 
 
 class View(QtWidgets.QGraphicsView):
@@ -136,6 +13,9 @@ class View(QtWidgets.QGraphicsView):
         self.setScene(scene)
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.SmartViewportUpdate)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._context_menu)
+
         self.drag = False
         self._operation_history = [None]
         self._current_operation_history = 0
@@ -152,9 +32,63 @@ class View(QtWidgets.QGraphicsView):
         self.alignment_guide_path = None
         self._init_alignment_params()
         self.prev_pos = None
-        
+
         self._snap_guide = {'x': None, 'y': None}
 
+    def drop_create_node(self):
+        return None
+
+    def _context_menu(self, event):
+        cursor = QtGui.QCursor.pos()
+
+        def __enable_edit_checked():
+            self.scene().enable_edit = _enable_edit_action.isChecked()
+            self.scene().enable_edit_change()
+
+        def _lock_bg_image_checked():
+            self.scene().lock_bg_image = _lock_bg_image_action.isChecked()
+            self.scene().enable_edit_change()
+
+        def _draw_bg_grid_checked():
+            self.scene().draw_bg_grid = _draw_bg_grid_action.isChecked()
+
+        _menu = QtWidgets.QMenu()
+
+        _enable_edit_action = QtWidgets.QAction('Enable edit', self, checkable=True)
+        _enable_edit_action.setChecked(self.scene().enable_edit)
+        _enable_edit_action.triggered.connect(__enable_edit_checked)
+        _menu.addAction(_enable_edit_action)
+
+        if not self.scene().enable_edit:
+            _menu.exec_(cursor)
+            return
+
+        _menu.addSeparator()
+
+        _pick = _menu.addMenu('PickButton')
+        _pick.addAction('Change color', self.hoge)
+
+        _bgi = _menu.addMenu('Image')
+        _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
+        _lock_bg_image_action.setChecked(self.scene().lock_bg_image)
+        _lock_bg_image_action.triggered.connect(_lock_bg_image_checked)
+        _bgi.addAction(_lock_bg_image_action)
+
+        _bgg = _menu.addMenu('Grid')
+        _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
+        _draw_bg_grid_action.setChecked(self.scene().draw_bg_grid)
+        _draw_bg_grid_action.triggered.connect(_draw_bg_grid_checked)
+        _bgg.addAction(_draw_bg_grid_action)
+
+        _menu.exec_(cursor)
+
+    def hoge(self):
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(60, 60, 60, 255), self)
+        if color.isValid():
+            print color
+            # self.ui.label.setPalette(QtGui.QPalette(color))
+            # self.ui.label.setText(color.name())
+            # self.ui.label.setAutoFillBackground(True)
 
     def get_nodes(self, cls, display_only=False):
         if display_only:
@@ -162,7 +96,6 @@ class View(QtWidgets.QGraphicsView):
         else:
             _nodes = self.items()
         return [_n for _n in _nodes if isinstance(_n, cls)]
-
 
     def add_node_on_center(self, node):
         self.scene().add_item(node)
@@ -219,7 +152,7 @@ class View(QtWidgets.QGraphicsView):
         elif event.mimeData().hasText() and not event.mimeData().hasUrls():
             text = event.mimeData().text()
             text = text.split('\n')
-            self.drop_node = [drop_create_node(_t, pos) for _t in text]
+            self.drop_node = [self.drop_create_node(_t, pos) for _t in text]
         else:
             event.ignore()
 
@@ -465,7 +398,3 @@ class View(QtWidgets.QGraphicsView):
         for _n in _sel:
             _n.setX(_pos_dict[_n.id][0])
             _n.setY(_pos_dict[_n.id][1])
-
-# -----------------------------------------------------------------------------
-# EOF
-# -----------------------------------------------------------------------------

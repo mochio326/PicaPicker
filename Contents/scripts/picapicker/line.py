@@ -2,6 +2,7 @@
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 import cmath
 
+
 class LineArrow(QtWidgets.QGraphicsItem):
     def __init__(self, parent, color):
         super(LineArrow, self).__init__(parent)
