@@ -67,6 +67,7 @@ class View(QtWidgets.QGraphicsView):
 
         self.enable_edit = True
         self.lock_bg_image = False
+        self.draw_bg_grid = True
 
     def enable_edit_change(self):
         for _i in self.items():
@@ -158,6 +159,10 @@ class View(QtWidgets.QGraphicsView):
         cmds.select(_select_nodes)
 
     def drawBackground(self, painter, rect):
+
+        if not self.draw_bg_grid:
+            return
+
         scene_height = self.sceneRect().height()
         scene_width = self.sceneRect().width()
 
@@ -214,6 +219,10 @@ class View(QtWidgets.QGraphicsView):
     def mousePressEvent(self, event):
 
         if event.modifiers() == QtCore.Qt.ShiftModifier:
+
+            if not self.enable_edit or len(self.scene().selectedItems()) < 2:
+                return
+
             self.press_alignment_key = True
             if event.button() == QtCore.Qt.LeftButton:
                 self.alignment_type = 'vertical'
@@ -390,7 +399,7 @@ class View(QtWidgets.QGraphicsView):
         :return:
         """
         _sel = self.scene().selectedItems()
-        if len(_sel) == 0:
+        if len(_sel) < 2:
             return
 
         if start_pos is None:

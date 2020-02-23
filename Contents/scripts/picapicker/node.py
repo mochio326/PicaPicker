@@ -45,6 +45,8 @@ class Node(QtWidgets.QGraphicsObject):
         self._tooltip = label
 
         self.setAcceptHoverEvents(True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
 
         # Brush.
         self.brush = QtGui.QBrush()
@@ -97,6 +99,7 @@ class Node(QtWidgets.QGraphicsObject):
             self.drag = True
             # 見やすくするために最前面表示
             # self.setZValue(100.0)
+
         super(Node, self).mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -149,6 +152,10 @@ class Node(QtWidgets.QGraphicsObject):
         self.view.remove_item(self)
 
     def search_snap_node(self):
+
+        if not self.view.enable_edit:
+            return None, None
+
         _threshold = 10
         _x_candidate = {}
         _y_candidate = {}
@@ -187,8 +194,6 @@ class PickNode(Node):
 
     def __init__(self, *args, **kwargs):
         super(PickNode, self).__init__(*args, **kwargs)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
 
 
 class BgNode(Node):
@@ -202,8 +207,6 @@ class BgNode(Node):
             self.image = QtGui.QImage(image)
         self.width = self.image.width()
         self.height = self.image.height()
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.setAcceptHoverEvents(False)
         self.snap = False
 

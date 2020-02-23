@@ -40,6 +40,10 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             self.view.lock_bg_image = _lock_bg_image_action.isChecked()
             self.view.enable_edit_change()
 
+        def _draw_bg_grid_checked():
+            self.view.draw_bg_grid = _draw_bg_grid_action.isChecked()
+
+
         _menu = QtWidgets.QMenu()
 
         _enable_edit_action = QtWidgets.QAction('Enable edit', self, checkable=True)
@@ -53,10 +57,22 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
         _menu.addSeparator()
 
-        _lock_bg_image_action = QtWidgets.QAction('Lock background image', self, checkable=True)
+        _pick = _menu.addMenu('PickButton')
+        _pick.addAction('Change color', self.hoge)
+
+        _bgi = _menu.addMenu('Image')
+        _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
         _lock_bg_image_action.setChecked(self.view.lock_bg_image)
         _lock_bg_image_action.triggered.connect(_lock_bg_image_checked)
-        _menu.addAction(_lock_bg_image_action)
+        _bgi.addAction(_lock_bg_image_action)
+
+        _bgg = _menu.addMenu('Grid')
+        _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
+        _draw_bg_grid_action.setChecked(self.view.draw_bg_grid)
+        _draw_bg_grid_action.triggered.connect(_draw_bg_grid_checked)
+        _bgg.addAction(_draw_bg_grid_action)
+
+
 
 
         # _menu.addAction('Add partition', self.hoge)
@@ -70,7 +86,12 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
 
     def hoge(self):
-        pass
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(60, 60, 60, 255), self)
+        if color.isValid():
+            print color
+            # self.ui.label.setPalette(QtGui.QPalette(color))
+            # self.ui.label.setText(color.name())
+            # self.ui.label.setAutoFillBackground(True)
 
 
 
