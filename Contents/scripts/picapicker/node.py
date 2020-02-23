@@ -13,7 +13,11 @@ class Node(QtWidgets.QGraphicsObject):
     pos_changed = QtCore.Signal()
 
     node_snap = QtCore.Signal(QtCore.QPointF, QtCore.QPointF, str)
-    del_node_snap = QtCore.Signal(str)
+    end_node_snap = QtCore.Signal(str)
+
+    @property
+    def view(self):
+        return self.scene().views()[0]
 
     @property
     def center(self):
@@ -107,26 +111,21 @@ class Node(QtWidgets.QGraphicsObject):
                     self.setX(x_node.x())
                     self.node_snap.emit(self.center, x_node.center, 'x')
                 else:
-                    self.del_node_snap.emit('x')
+                    self.end_node_snap.emit('x')
 
                 if y_node is not None:
                     self.setY(y_node.y())
                     self.node_snap.emit(self.center, y_node.center, 'y')
                 else:
-                    self.del_node_snap.emit('y')
+                    self.end_node_snap.emit('y')
             self.scene().update()
-
-    @property
-    def view(self):
-        return self.scene().views()[0]
-
 
     def mouseReleaseEvent(self, event):
         if self.drag:
             self.drag = False
             # ノードを現在の描画順を維持したまま数値を整頓
             node_z_list = []
-            for _n in self.view.get_nodes(self):
+            for _n in self.view.get_nodes(self.__class__):
                 node_z_list.append([_n.zValue(), _n])
             node_z_list = sorted(node_z_list, key=lambda x: x[0])
             for _i, _n in enumerate(node_z_list):
@@ -135,8 +134,8 @@ class Node(QtWidgets.QGraphicsObject):
             self.moveing.emit()
             self.pos_changed.emit()
 
-            self.del_node_snap.emit('x')
-            self.del_node_snap.emit('y')
+            self.end_node_snap.emit('x')
+            self.end_node_snap.emit('y')
 
     def hoverEnterEvent(self, event):
         QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), self._tooltip)
@@ -154,7 +153,7 @@ class Node(QtWidgets.QGraphicsObject):
         _x_candidate = {}
         _y_candidate = {}
 
-        for _n in self.view.get_nodes(self, True):
+        for _n in self.view.get_nodes(self.__class__, True):
             if self == _n:
                 continue
             _x_deff = abs(_n.center.x() - self.center.x())
@@ -203,8 +202,8 @@ class BgNode(Node):
             self.image = QtGui.QImage(image)
         self.width = self.image.width()
         self.height = self.image.height()
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.setAcceptHoverEvents(False)
         self.snap = False
 

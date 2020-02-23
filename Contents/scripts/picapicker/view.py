@@ -61,28 +61,31 @@ class View(QtWidgets.QGraphicsView):
         self.alignment_mode = False
         self.alignment_guide_path = None
         self._init_alignment_params()
+        self.prev_pos = None
         
-        self._x_snap_guide = None
-        self._y_snap_guide = None
+        self._snap_guide = {'x': None, 'y': None}
+
+        self.enable_edit = True
+        self.lock_bg_image = False
+
+    def enable_edit_change(self):
+        for _i in self.items():
+            if isinstance(_i, PickNode):
+                _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, self.enable_edit)
+            elif isinstance(_i, BgNode):
+                _flg = self.enable_edit and not self.lock_bg_image
+                _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, _flg)
+                _i.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, _flg)
 
     def del_node_snap_guide(self, type):
-        if type == 'x' and self._x_snap_guide is not None:
-            self.remove_item(self._x_snap_guide)
-            self._x_snap_guide = None
-        if type == 'y' and self._y_snap_guide is not None:
-            self.remove_item(self._y_snap_guide)
-            self._y_snap_guide = None
+        if self._snap_guide[type] is not None:
+            self.remove_item(self._snap_guide[type])
+            self._snap_guide[type] = None
 
     def show_node_snap_guide(self, pos_a, pos_b, type):
         self.del_node_snap_guide(type)
-
-        _snap_guide = Line(pos_a, pos_b)
-        self.add_item(_snap_guide)
-
-        if type == 'x':
-            self._x_snap_guide = _snap_guide
-        if type == 'y':
-            self._y_snap_guide = _snap_guide
+        self._snap_guide[type] = Line(pos_a, pos_b)
+        self.add_item(self._snap_guide[type])
 
     def _init_alignment_params(self):
         self.alignment_start_pos = None
@@ -105,6 +108,9 @@ class View(QtWidgets.QGraphicsView):
             self.drop_node = None
 
     def dragEnterEvent(self, event):
+
+        if not self.enable_edit:
+            return
 
         pos = self.mapToScene(event.pos())
 
@@ -130,7 +136,7 @@ class View(QtWidgets.QGraphicsView):
             self.add_item(_n)
             _n.setOpacity(0.5)
             _n.node_snap.connect(self.show_node_snap_guide)
-            _n.del_node_snap.connect(self.del_node_snap_guide)
+            _n.end_node_snap.connect(self.del_node_snap_guide)
         self.update()
         event.setAccepted(True)
 
@@ -442,8 +448,7 @@ class View(QtWidgets.QGraphicsView):
             _nodes = self.items(self.viewport().rect())
         else:
             _nodes = self.items()
-
-        return [_n for _n in _nodes if isinstance(_n, cls.__class__)]
+        return [_n for _n in _nodes if isinstance(_n, cls)]
 
 # -----------------------------------------------------------------------------
 # EOF
