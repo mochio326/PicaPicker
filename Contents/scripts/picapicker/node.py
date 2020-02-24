@@ -49,6 +49,7 @@ class Node(QtWidgets.QGraphicsObject):
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
+        self.movable = True
 
         # Brush.
         self.brush = QtGui.QBrush()
@@ -204,10 +205,33 @@ class BgNode(Node):
         self.height = self.image.height()
         self.setAcceptHoverEvents(False)
         self.snap = False
+        self.movable = True
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+
+    def mousePressEvent(self, event):
+        # ここで選択できなくしておかないと全面のpickerを矩形選択できない
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        if event.button() == QtCore.Qt.LeftButton and event.modifiers() == QtCore.Qt.ControlModifier:
+            # ロックされてない場合のみ一時的にフラグを有効にして編集できるようにする
+            if self.movable:
+                self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+                self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+            self.drag = True
+        super(BgNode, self).mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.drag:
+            if self.movable:
+                # 削除のために選択状態は残しておく
+                self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+                # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        super(BgNode, self).mouseReleaseEvent(event)
 
     def paint(self, painter, option, widget):
         painter.drawImage(0, 0, self.image)
-
+        if self.isSelected():
+            painter.setPen(self.sel_pen)
+            painter.drawRoundedRect(self.rect, 2.0, 2.0)
 # -----------------------------------------------------------------------------
 # EOF
 # -----------------------------------------------------------------------------

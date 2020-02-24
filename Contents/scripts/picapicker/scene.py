@@ -25,6 +25,7 @@ class Scene(QtWidgets.QGraphicsScene):
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, self.enable_edit)
             elif isinstance(_i, BgNode):
                 _flg = self.enable_edit and not self.lock_bg_image
+                _i.movable = _flg
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, _flg)
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, _flg)
 
@@ -32,7 +33,6 @@ class Scene(QtWidgets.QGraphicsScene):
         for _i in self.items():
             if isinstance(_i, BgNode):
                 _i.setOpacity(value)
-
 
     def get_selected_pick_nodes(self):
         return [_n for _n in self.selectedItems() if isinstance(_n, PickNode)]
