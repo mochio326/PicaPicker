@@ -89,15 +89,7 @@ class Node(QtWidgets.QGraphicsObject):
         # painter.drawText(rect, QtCore.Qt.AlignCenter, self.label)
 
     def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.MiddleButton and event.modifiers() == QtCore.Qt.ControlModifier:
-
-            self.scene().clearSelection()
-            for _n in self.get_source_nodes():
-                _n.setSelected(True)
-            self.setSelected(True)
-            self.scene().update()
-
-        elif event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.LeftButton and event.modifiers() == QtCore.Qt.ControlModifier:
             self.drag = True
             # 見やすくするために最前面表示
             # self.setZValue(100.0)
@@ -105,9 +97,10 @@ class Node(QtWidgets.QGraphicsObject):
         super(Node, self).mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        super(Node, self).mouseMoveEvent(event)
+        # super(Node, self).mouseMoveEvent(event)
 
         if self.drag:
+            super(Node, self).mouseMoveEvent(event)
             self.moveing.emit()
             # print self.center
             if self.snap:

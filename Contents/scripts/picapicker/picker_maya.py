@@ -4,8 +4,6 @@ from .view import View
 from .scene import Scene
 from .node import PickNode
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-import maya.OpenMayaUI as OpenMayaUI
-from shiboken2 import wrapInstance
 from maya import cmds
 
 
@@ -50,27 +48,80 @@ class MView(View):
             return cmds.colorIndex(color_index, q=True)
 
 
-class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(Window, self).__init__(*args, **kwargs)
+class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
+    def __init__(self):
+        super(PickerWidget, self).__init__()
+
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
 
-        self.setWindowTitle('picker test app')
+        self.setWindowTitle('PicaPicker')
 
         self.resize(600, 800)
-        hbox = QtWidgets.QHBoxLayout()
-        hbox.setSpacing(2)
-        hbox.setContentsMargins(2, 2, 2, 2)
-        self.setLayout(hbox)
+        self.menu_bar = QtWidgets.QMenuBar(self)
 
         self.scene = MScene()
         self.scene.setObjectName('Scene')
         self.scene.setSceneRect(0, 0, 1000, 1000)
         self.view = MView(self.scene, self)
 
-        hbox.addWidget(self.view)
+        self.vbox = QtWidgets.QVBoxLayout()
+        self.vbox.setSpacing(2)
+        self.vbox.setContentsMargins(2, 2, 2, 2)
+        self.setLayout(self.vbox)
+        self.meke_menu_bar()
+        self.vbox.addWidget(self.menu_bar)
+        self.vbox.addWidget(self.view)
 
+    def menu_bar_visibility(self):
+        if self.scene.enable_edit:
+            self.menu_bar.show()
+        else:
+            self.menu_bar.hide()
+
+    def meke_menu_bar(self):
+
+        def _lock_bg_image_checked():
+            self.scene.lock_bg_image = _lock_bg_image_action.isChecked()
+            self.scene.enable_edit_change()
+
+        def _draw_bg_grid_checked():
+            self.scene.draw_bg_grid = _draw_bg_grid_action.isChecked()
+
+        self.menu_bar = QtWidgets.QMenuBar(self)
+
+        _m_file = self.menu_bar.addMenu('File')
+        _m_file.setTearOffEnabled(True)
+        _m_file.setWindowTitle('File')
+        exit = QtWidgets.QAction('Exit', self)
+        _m_file.addAction(exit)
+
+        _pick = self.menu_bar.addMenu('PickButton')
+        _pick.addAction('Edit color', self.node_change_color)
+
+        _bgi = self.menu_bar.addMenu('Image')
+        _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
+        _lock_bg_image_action.setChecked(self.scene.lock_bg_image)
+        _lock_bg_image_action.triggered.connect(_lock_bg_image_checked)
+        _bgi.addAction(_lock_bg_image_action)
+        _bgi.addAction('Edit opacity', self.bg_edit_opacity)
+
+        _bgg = self.menu_bar.addMenu('Grid')
+        _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
+        _draw_bg_grid_action.setChecked(self.scene.draw_bg_grid)
+        _draw_bg_grid_action.triggered.connect(_draw_bg_grid_checked)
+        _bgg.addAction(_draw_bg_grid_action)
+
+    def node_change_color(self):
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(60, 60, 60, 255), self)
+        if not color.isValid():
+            return
+        for _n in self.scene.get_selected_pick_nodes():
+            _n.bg_color = color
+            _n.update()
+
+    def bg_edit_opacity(self):
+        self.scene.edit_bg_image_opacity(0.5)
 
 '''
 ============================================================
@@ -80,9 +131,7 @@ class Window(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
 
 def main():
-    mainWindowPtr = OpenMayaUI.MQtUtil.mainWindow()
-    mayaWindow = wrapInstance(long(mainWindowPtr), QtWidgets.QWidget)
-    nodeWindow = Window()
+    nodeWindow = PickerWidget()
     nodeWindow.show()
 
 

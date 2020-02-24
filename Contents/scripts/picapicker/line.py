@@ -87,7 +87,7 @@ class Line(QtWidgets.QGraphicsPathItem):
         self.update_path()
 
     def delete(self):
-        self.scene().views()[0].remove_item(self)
+        self.scene().remove_item(self)
 
     def update_path(self):
         path = QtGui.QPainterPath()

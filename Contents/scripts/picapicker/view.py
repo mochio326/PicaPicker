@@ -44,13 +44,7 @@ class View(QtWidgets.QGraphicsView):
         def __enable_edit_checked():
             self.scene().enable_edit = _enable_edit_action.isChecked()
             self.scene().enable_edit_change()
-
-        def _lock_bg_image_checked():
-            self.scene().lock_bg_image = _lock_bg_image_action.isChecked()
-            self.scene().enable_edit_change()
-
-        def _draw_bg_grid_checked():
-            self.scene().draw_bg_grid = _draw_bg_grid_action.isChecked()
+            self.parent().menu_bar_visibility()
 
         _menu = QtWidgets.QMenu()
 
@@ -59,40 +53,7 @@ class View(QtWidgets.QGraphicsView):
         _enable_edit_action.triggered.connect(__enable_edit_checked)
         _menu.addAction(_enable_edit_action)
 
-        if not self.scene().enable_edit:
-            _menu.exec_(cursor)
-            return
-
-        _menu.addSeparator()
-
-        _pick = _menu.addMenu('PickButton')
-        _pick.addAction('Edit color', self.node_change_color)
-
-        _bgi = _menu.addMenu('Image')
-        _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
-        _lock_bg_image_action.setChecked(self.scene().lock_bg_image)
-        _lock_bg_image_action.triggered.connect(_lock_bg_image_checked)
-        _bgi.addAction(_lock_bg_image_action)
-        _bgi.addAction('Edit opacity', self.bg_edit_opacity)
-
-        _bgg = _menu.addMenu('Grid')
-        _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
-        _draw_bg_grid_action.setChecked(self.scene().draw_bg_grid)
-        _draw_bg_grid_action.triggered.connect(_draw_bg_grid_checked)
-        _bgg.addAction(_draw_bg_grid_action)
-
         _menu.exec_(cursor)
-
-    def bg_edit_opacity(self):
-        self.scene().edit_bg_image_opacity(0.5)
-
-    def node_change_color(self):
-        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(60, 60, 60, 255), self)
-        if not color.isValid():
-            return
-        for _n in self.scene().get_selected_pick_nodes():
-            _n.bg_color = color
-            _n.update()
 
     def get_nodes(self, cls, display_only=False):
         if display_only:
