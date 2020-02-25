@@ -2,19 +2,24 @@
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from .view import View
 from .scene import Scene
-from .node import PickNode
+from .node import PickNode, ManyPickNode
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from maya import cmds
 import copy
+
 
 class MScene(Scene):
 
     def select_nodes(self):
         _select_nodes = []
+
         for _item in self.selectedItems():
-            if not isinstance(_item, PickNode):
-                continue
-            _select_nodes.extend(_item.select_node)
+            if isinstance(_item, ManyPickNode) and not _item.drag:
+                for _n in _item.get_member_nodes():
+                    _n.setSelected(True)
+                    _select_nodes.extend(_n.select_node)
+            elif isinstance(_item, PickNode):
+                _select_nodes.extend(_item.select_node)
         cmds.select(_select_nodes)
 
 
@@ -28,14 +33,10 @@ class MView(View):
 
         node = cmds.ls(text)[0]
         bg_color = get_color(node)
-        # if _color is None:
-        #     bg_color = None
-        # else:
-        #     _color = [int(_c * 255) for _c in _color]
-        #     bg_color = QtGui.QColor(_color[0], _color[1], _color[2])
         n = PickNode(label=split_text[-1], bg_color=bg_color)
         n.setPos(pos)
         return n
+
 
 def get_color(node):
     # 描画のオーバーライドの色
@@ -99,10 +100,13 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         _m_file.addAction(exit)
 
         _pick = self.menu_bar.addMenu('Picker')
+        _pick.setTearOffEnabled(True)
+        _pick.setWindowTitle('Picker')
         _pick.addAction('Color', self.node_change_color)
         _pick.addAction('Size', self.picker_size)
         _pick.addAction('WireFrame Color', self.set_wire_frame_color)
-
+        _pick.addAction('Add Many Picker', lambda: self.view.add_node_on_center(
+            ManyPickNode(member_nodes_id=[_item.id for _item in self.scene.selectedItems() if isinstance(_item, PickNode)])))
 
         _bgi = self.menu_bar.addMenu('Image')
         _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
@@ -112,33 +116,20 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         _bgop = _bgi.addMenu('Opacity')
 
         ag = QtWidgets.QActionGroup(_bgop, exclusive=True)
-        self.myID = [str(_i * 0.1) for _i in reversed(range(1, 11, 1))]
-        _op_act = []
-        for j in self.myID:
-            _op_act.append(ag.addAction(QtWidgets.QAction(j, _bgop, checkable=True)))
-            _bgop.addAction(_op_act[-1])
-
-        # lambdaで引数渡す場合、forとかで回すと変数が同一になってしまって最後の数値しか渡らなくなるのでベタ書き
-        _op_lam = []
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(1.0))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.9))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.8))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.7))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.6))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.5))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.4))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.3))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.2))
-        _op_lam.append(lambda: self.scene.edit_bg_image_opacity(0.1))
-
-        for a, l in zip(_op_act, _op_lam):
-            a.triggered.connect(l)
+        for j in [_i * 0.1 for _i in reversed(range(1, 11, 1))]:
+            _action = ag.addAction(QtWidgets.QAction(str(j), _bgop, checkable=True))
+            _bgop.addAction(_action)
+            _action.triggered.connect(lambda x=j: self.scene.edit_bg_image_opacity(x))
 
         _bgg = self.menu_bar.addMenu('Grid')
         _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
         _draw_bg_grid_action.setChecked(self.scene.draw_bg_grid)
         _draw_bg_grid_action.triggered.connect(_draw_bg_grid_checked)
         _bgg.addAction(_draw_bg_grid_action)
+
+    def add_many_picker(self):
+        self.view.add_node_on_center(
+            ManyPickNode(member_nodes_id=[_item.id for _item in self.selectedItems() if isinstance(_item, PickNode)]))
 
     def picker_size(self):
         w = 20
@@ -167,9 +158,6 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         for _n in self.scene.get_selected_pick_nodes():
             _n.bg_color = color
             _n.update()
-
-    def bg_edit_opacity(self, val):
-        self.scene.edit_bg_image_opacity(float(val))
 
 
 class CanvasSizeInputDialog(QtWidgets.QDialog):
@@ -217,6 +205,7 @@ class CanvasSizeInputDialog(QtWidgets.QDialog):
         result = dialog.exec_()  # ダイアログを開く
         w, h = dialog.canvas_size()  # キャンバスサイズを取得
         return (w, h, result == QtWidgets.QDialog.Accepted)
+
 
 '''
 ============================================================
