@@ -5,22 +5,30 @@ from .scene import Scene
 from .node import PickNode, ManyPickNode
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from maya import cmds
-import copy
+
+
+def get_dcc_node(self):
+    node_name = self.label
+    return cmds.ls(node_name)
+
+
+PickNode.get_dcc_node = get_dcc_node
 
 
 class MScene(Scene):
 
     def select_nodes(self):
-        _select_nodes = []
-
+        _select_dcc_nodes = []
+        self.blockSignals(True)
         for _item in self.selectedItems():
             if isinstance(_item, ManyPickNode) and not _item.drag:
                 for _n in _item.get_member_nodes():
                     _n.setSelected(True)
-                    _select_nodes.extend(_n.select_node)
+                    _select_dcc_nodes.extend(_n.get_dcc_node())
             elif isinstance(_item, PickNode):
-                _select_nodes.extend(_item.select_node)
-        cmds.select(_select_nodes)
+                _select_dcc_nodes.extend(_item.get_dcc_node())
+        cmds.select(_select_dcc_nodes)
+        self.blockSignals(False)
 
 
 class MView(View):
@@ -106,7 +114,8 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         _pick.addAction('Size', self.picker_size)
         _pick.addAction('WireFrame Color', self.set_wire_frame_color)
         _pick.addAction('Add Many Picker', lambda: self.view.add_node_on_center(
-            ManyPickNode(member_nodes_id=[_item.id for _item in self.scene.selectedItems() if isinstance(_item, PickNode)])))
+            ManyPickNode(
+                member_nodes_id=[_item.id for _item in self.scene.selectedItems() if isinstance(_item, PickNode)])))
 
         _bgi = self.menu_bar.addMenu('Image')
         _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)

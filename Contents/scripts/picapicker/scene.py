@@ -11,6 +11,8 @@ class Scene(QtWidgets.QGraphicsScene):
         self.lock_bg_image = False
         self.draw_bg_grid = True
 
+        self.old_selected_items = []
+
         # memo
         # itemをリストに入れて保持しておかないと
         # 大量のitemが追加された際にPySideがバグってしまう事があった

@@ -183,15 +183,16 @@ class Node(QtWidgets.QGraphicsObject):
 class PickNode(Node):
     DEF_Z_VALUE = 10
 
-    @property
-    def select_node(self):
-        node_name = self.label
-        return cmds.ls(node_name)
+    def get_dcc_node(self):
+        """
+        DCCツール側のノード情報を戻す
+        :return:
+        """
+        pass
 
     def __init__(self, *args, **kwargs):
         super(PickNode, self).__init__(*args, **kwargs)
         self.setAcceptDrops(True)
-
 
     def mouseMoveEvent(self, event):
         super(PickNode, self).mouseMoveEvent(event)
@@ -208,7 +209,7 @@ class PickNode(Node):
 class ManyPickNode(Node):
     DEF_Z_VALUE = 10
 
-    def __init__(self, member_nodes_id=None,  *args, **kwargs):
+    def __init__(self, member_nodes_id=None, *args, **kwargs):
         super(ManyPickNode, self).__init__(*args, **kwargs)
         self.setAcceptDrops(True)
         self.member_nodes_id = []
@@ -216,39 +217,7 @@ class ManyPickNode(Node):
             self.member_nodes_id = member_nodes_id
 
     def get_member_nodes(self):
-        ls = []
-        for _i in self.scene().items():
-            if _i.id in self.member_nodes_id:
-                ls.append(_i)
-        return ls
-
-    # def dragEnterEvent(self, event):
-    #     event.acceptProposedAction()
-    #     print event.source().objectName()
-    #     print 'aaaaaaaaaaaaaaa'
-    #
-    #     if not self.scene().enable_edit:
-    #         return
-    #
-    #     pos = self.mapToScene(event.pos())
-    #
-    #     print event.mimeData().hasUrls()
-    #     print event.mimeData().hasText()
-    #     event.accept()
-    #
-    #     event.setAccepted(True)
-    #
-    # def dropEvent(self, event):
-    #     print 'aaaaaaaaaaaaaaa'
-    #     event.accept()
-    #     event.acceptProposedAction()
-    #     pos = self.mapToScene(event.pos())
-    #     for i, _n in enumerate(self.drop_node):
-    #         _n.setPos(pos.x() + (_n.rect.width() + 10) * i, pos.y())
-    #         _n.setOpacity(1)
-    #         _n.update()
-    #     self.drop_node = None
-    #
+        return [_i for _i in self.scene().items() if _i.id in self.member_nodes_id]
 
     def paint(self, painter, option, widget):
         self.brush.setColor(self.bg_color)
@@ -258,7 +227,6 @@ class ManyPickNode(Node):
         else:
             painter.setPen(self.pen)
         painter.drawRoundedRect(self.rect, 20.0, 20.0)
-
 
 
 class BgNode(Node):
