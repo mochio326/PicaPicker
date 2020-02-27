@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
-from .node import PickNode, BgNode
+from .node import Picker, BgNode, GroupPicker
 
 
 class Scene(QtWidgets.QGraphicsScene):
@@ -11,7 +11,10 @@ class Scene(QtWidgets.QGraphicsScene):
         self.lock_bg_image = False
         self.draw_bg_grid = True
 
-        self.old_selected_items = []
+        self.grid_width = 20
+        self.grid_height = 20
+
+        # self.bg_image_opacity()
 
         # memo
         # itemをリストに入れて保持しておかないと
@@ -19,11 +22,25 @@ class Scene(QtWidgets.QGraphicsScene):
         self.add_items = []
 
     def select_nodes(self):
+        _target_dcc_nodes = []
+        self.blockSignals(True)
+        for _item in self.selectedItems():
+            if isinstance(_item, GroupPicker) and not _item.drag:
+                for _n in _item.get_member_nodes():
+                    _n.setSelected(True)
+                    _target_dcc_nodes.extend(_n.get_dcc_node())
+            elif isinstance(_item, Picker):
+                _target_dcc_nodes.extend(_item.get_dcc_node())
+        self.select_dcc_nodes(_target_dcc_nodes)
+        self.blockSignals(False)
+
+    def select_dcc_nodes(self, node_list):
+        # DCCツール側のノード選択処理
         pass
 
     def enable_edit_change(self):
         for _i in self.items():
-            if isinstance(_i, PickNode):
+            if isinstance(_i, Picker):
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, self.enable_edit)
             elif isinstance(_i, BgNode):
                 _flg = self.enable_edit and not self.lock_bg_image
@@ -37,7 +54,7 @@ class Scene(QtWidgets.QGraphicsScene):
                 _i.setOpacity(value)
 
     def get_selected_pick_nodes(self):
-        return [_n for _n in self.selectedItems() if isinstance(_n, PickNode)]
+        return [_n for _n in self.selectedItems() if isinstance(_n, Picker)]
 
     def drawBackground(self, painter, rect):
 
@@ -58,13 +75,11 @@ class Scene(QtWidgets.QGraphicsScene):
         sel_pen.setWidth(1)
         sel_pen.setColor(QtGui.QColor(125, 125, 125, 125))
 
-        grid_width = 20
-        grid_height = 20
-        grid_horizontal_count = int(round(scene_width / grid_width)) + 1
-        grid_vertical_count = int(round(scene_height / grid_height)) + 1
+        grid_horizontal_count = int(round(scene_width / self.grid_width)) + 1
+        grid_vertical_count = int(round(scene_height / self.grid_height)) + 1
 
         for x in range(0, grid_horizontal_count):
-            xc = x * grid_width
+            xc = x * self.grid_width
             if x % 5 == 0:
                 painter.setPen(sel_pen)
             else:
@@ -72,7 +87,7 @@ class Scene(QtWidgets.QGraphicsScene):
             painter.drawLine(xc, 0, xc, scene_height)
 
         for y in range(0, grid_vertical_count):
-            yc = y * grid_height
+            yc = y * self.grid_height
             if y % 5 == 0:
                 painter.setPen(sel_pen)
             else:

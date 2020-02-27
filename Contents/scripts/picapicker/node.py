@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 import uuid
-from maya import cmds
-
 
 class Node(QtWidgets.QGraphicsObject):
     DEF_Z_VALUE = 0.1
@@ -180,7 +178,7 @@ class Node(QtWidgets.QGraphicsObject):
         return x_node, y_node
 
 
-class PickNode(Node):
+class Picker(Node):
     DEF_Z_VALUE = 10
 
     def get_dcc_node(self):
@@ -191,11 +189,11 @@ class PickNode(Node):
         pass
 
     def __init__(self, *args, **kwargs):
-        super(PickNode, self).__init__(*args, **kwargs)
+        super(Picker, self).__init__(*args, **kwargs)
         self.setAcceptDrops(True)
 
     def mouseMoveEvent(self, event):
-        super(PickNode, self).mouseMoveEvent(event)
+        super(Picker, self).mouseMoveEvent(event)
 
         if event.buttons() == QtCore.Qt.MiddleButton:
             mimeData = QtCore.QMimeData()
@@ -206,11 +204,11 @@ class PickNode(Node):
             dropAction = drag.exec_(QtCore.Qt.MoveAction)
 
 
-class ManyPickNode(Node):
+class GroupPicker(Node):
     DEF_Z_VALUE = 10
 
     def __init__(self, member_nodes_id=None, *args, **kwargs):
-        super(ManyPickNode, self).__init__(*args, **kwargs)
+        super(GroupPicker, self).__init__(*args, **kwargs)
         self.setAcceptDrops(True)
         self.member_nodes_id = []
         if member_nodes_id is not None:

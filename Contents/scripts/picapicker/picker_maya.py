@@ -2,7 +2,7 @@
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from .view import View
 from .scene import Scene
-from .node import PickNode, ManyPickNode
+from .node import Picker, GroupPicker
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from maya import cmds
 
@@ -12,38 +12,21 @@ def get_dcc_node(self):
     return cmds.ls(node_name)
 
 
-PickNode.get_dcc_node = get_dcc_node
+def select_dcc_nodes(self, node_list):
+    cmds.select(node_list)
 
 
-class MScene(Scene):
+def drop_create_node(self, text, pos):
+    split_text = text.split('|')
+    # if len(split_text) != 2:
+    #     return
+    # class_name, node_name = split_text
 
-    def select_nodes(self):
-        _select_dcc_nodes = []
-        self.blockSignals(True)
-        for _item in self.selectedItems():
-            if isinstance(_item, ManyPickNode) and not _item.drag:
-                for _n in _item.get_member_nodes():
-                    _n.setSelected(True)
-                    _select_dcc_nodes.extend(_n.get_dcc_node())
-            elif isinstance(_item, PickNode):
-                _select_dcc_nodes.extend(_item.get_dcc_node())
-        cmds.select(_select_dcc_nodes)
-        self.blockSignals(False)
-
-
-class MView(View):
-
-    def drop_create_node(self, text, pos):
-        split_text = text.split('|')
-        # if len(split_text) != 2:
-        #     return
-        # class_name, node_name = split_text
-
-        node = cmds.ls(text)[0]
-        bg_color = get_color(node)
-        n = PickNode(label=split_text[-1], bg_color=bg_color)
-        n.setPos(pos)
-        return n
+    node = cmds.ls(text)[0]
+    bg_color = get_color(node)
+    n = Picker(label=split_text[-1], bg_color=bg_color)
+    n.setPos(pos)
+    return n
 
 
 def get_color(node):
@@ -59,6 +42,19 @@ def get_color(node):
     return QtGui.QColor(_color[0], _color[1], _color[2])
 
 
+def create_nods_from_dcc_selection(self, pos):
+    _select = cmds.ls(sl=True, l=True)
+    nodes = [drop_create_node(self, _s, pos) for _s in _select]
+    [self.picker_init(_n, 1) for _n in nodes]
+    self.pickers_placement(nodes, pos, 1)
+
+
+Picker.get_dcc_node = get_dcc_node
+Scene.select_dcc_nodes = select_dcc_nodes
+View.drop_create_node = drop_create_node
+View.create_nods_from_dcc_selection = create_nods_from_dcc_selection
+
+
 class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
     def __init__(self):
         super(PickerWidget, self).__init__()
@@ -71,10 +67,10 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.resize(600, 800)
         self.menu_bar = QtWidgets.QMenuBar(self)
 
-        self.scene = MScene()
+        self.scene = Scene()
         self.scene.setObjectName('Scene')
         self.scene.setSceneRect(0, 0, 1000, 1000)
-        self.view = MView(self.scene, self)
+        self.view = View(self.scene, self)
 
         self.vbox = QtWidgets.QVBoxLayout()
         self.vbox.setSpacing(2)
@@ -112,10 +108,10 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         _pick.setWindowTitle('Picker')
         _pick.addAction('Color', self.node_change_color)
         _pick.addAction('Size', self.picker_size)
-        _pick.addAction('WireFrame Color', self.set_wire_frame_color)
-        _pick.addAction('Add Many Picker', lambda: self.view.add_node_on_center(
-            ManyPickNode(
-                member_nodes_id=[_item.id for _item in self.scene.selectedItems() if isinstance(_item, PickNode)])))
+        _pick.addAction('Set WireFrame Color', self.set_wire_frame_color)
+        _pick.addAction('Add Group Picker', lambda: self.view.add_node_on_center(
+            GroupPicker(
+                member_nodes_id=[_item.id for _item in self.scene.selectedItems() if isinstance(_item, Picker)])))
 
         _bgi = self.menu_bar.addMenu('Image')
         _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
@@ -138,7 +134,7 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
     def add_many_picker(self):
         self.view.add_node_on_center(
-            ManyPickNode(member_nodes_id=[_item.id for _item in self.selectedItems() if isinstance(_item, PickNode)]))
+            GroupPicker(member_nodes_id=[_item.id for _item in self.selectedItems() if isinstance(_item, Picker)]))
 
     def picker_size(self):
         w = 20

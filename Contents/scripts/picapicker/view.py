@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
-from .node import BgNode
+from .node import BgNode, GroupPicker, Picker
 from .line import Line
 import re
 
@@ -46,6 +46,13 @@ class View(QtWidgets.QGraphicsView):
             self.scene().enable_edit_change()
             self.parent().menu_bar_visibility()
 
+        def __add_group_picker(pos):
+            picker =[_item.id for _item in self.scene().selectedItems() if isinstance(_item, Picker)]
+            g = GroupPicker(member_nodes_id=picker)
+            self.scene().add_item(g)
+            g.setPos(pos)
+            g.update()
+
         _menu = QtWidgets.QMenu()
 
         _enable_edit_action = QtWidgets.QAction('Enable edit', self, checkable=True)
@@ -53,7 +60,16 @@ class View(QtWidgets.QGraphicsView):
         _enable_edit_action.triggered.connect(__enable_edit_checked)
         _menu.addAction(_enable_edit_action)
 
+        _menu.addSection('Add')
+
+        _menu.addAction('Picker', lambda: self.create_nods_from_dcc_selection(self.mapToScene(event)))
+
+        _menu.addAction('GroupPicker', lambda: __add_group_picker(self.mapToScene(event)))
+
         _menu.exec_(cursor)
+
+    def create_nods_from_dcc_selection(self, pos):
+        pass
 
     def get_nodes(self, cls, display_only=False):
         if display_only:
@@ -86,9 +102,7 @@ class View(QtWidgets.QGraphicsView):
 
     def dragMoveEvent(self, event):
         pos = self.mapToScene(event.pos())
-        for i, _n in enumerate(self.drop_node):
-            _n.setPos(pos.x() + (_n.rect.width() + 10) * i, pos.y())
-            _n.update()
+        self.pickers_placement(self.drop_node, pos, 0.5)
 
     def dragLeaveEvent(self, event):
         """ドラッグが抜けた時の処理
@@ -124,20 +138,30 @@ class View(QtWidgets.QGraphicsView):
         if self.drop_node is None:
             return
         for _n in self.drop_node:
-            self.scene().add_item(_n)
-            _n.setOpacity(0.5)
-            _n.node_snap.connect(self.show_node_snap_guide)
-            _n.end_node_snap.connect(self.del_node_snap_guide)
+            self.picker_init(_n, 0.5)
         self.update()
         event.setAccepted(True)
+
+    def picker_init(self, picker_instance, opacity=None):
+        # picker作った際に必要な初期設定を行っとく
+        self.scene().add_item(picker_instance)
+        if opacity is not None:
+            picker_instance.setOpacity(opacity)
+        picker_instance.node_snap.connect(self.show_node_snap_guide)
+        picker_instance.end_node_snap.connect(self.del_node_snap_guide)
+
+    def pickers_placement(self, pickers, pos_origin, opacity=None):
+        # 複数のpickerノードを横一列にいい感じに配置する
+        for i, _n in enumerate(pickers):
+            _n.setPos(pos_origin.x() + (_n.rect.width() + 10) * i, pos_origin.y())
+            if property is not None:
+                _n.setOpacity(opacity)
+            _n.update()
 
     def dropEvent(self, event):
         event.acceptProposedAction()
         pos = self.mapToScene(event.pos())
-        for i, _n in enumerate(self.drop_node):
-            _n.setPos(pos.x() + (_n.rect.width() + 10) * i, pos.y())
-            _n.setOpacity(1)
-            _n.update()
+        self.pickers_placement(self.drop_node, pos, 1)
         self.drop_node = None
 
     def wheelEvent(self, event):
@@ -225,6 +249,10 @@ class View(QtWidgets.QGraphicsView):
             return
 
         modifiers = QtWidgets.QApplication.keyboardModifiers()
+
+        # 以下編集用ショートカット
+        if not self.scene().enable_edit:
+            return
 
         if modifiers == QtCore.Qt.ControlModifier:
             # この辺りの処理は各関数をオーバーライドアプリ側での独自実装
