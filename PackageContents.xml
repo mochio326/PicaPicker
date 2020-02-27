@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ApplicationPackage SchemaVersion="0.1
+<ApplicationPackage SchemaVersion="0.1"
 	ProductType="Application"
-
 	AutodeskProduct="Maya"
 	Name="PicaPicker"
 	Description="Autodesk Maya PicaPicker"
