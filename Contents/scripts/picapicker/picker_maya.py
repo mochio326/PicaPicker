@@ -106,14 +106,18 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         _pick = self.menu_bar.addMenu('Picker')
         _pick.setTearOffEnabled(True)
         _pick.setWindowTitle('Picker')
+        _pick.addSection('Edit')
         _pick.addAction('Color', self.node_change_color)
         _pick.addAction('Size', self.picker_size)
         _pick.addAction('Set WireFrame Color', self.set_wire_frame_color)
-        _pick.addAction('Add Group Picker', lambda: self.view.add_node_on_center(
+        _pick.addSection('Add')
+        _pick.addAction('GroupPicker', lambda: self.view.add_node_on_center(
             GroupPicker(
                 member_nodes_id=[_item.id for _item in self.scene.selectedItems() if isinstance(_item, Picker)])))
 
         _bgi = self.menu_bar.addMenu('Image')
+        _bgi.setTearOffEnabled(True)
+        _bgi.setWindowTitle('Image')
         _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
         _lock_bg_image_action.setChecked(self.scene.lock_bg_image)
         _lock_bg_image_action.triggered.connect(_lock_bg_image_checked)
@@ -126,11 +130,15 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             _bgop.addAction(_action)
             _action.triggered.connect(lambda x=j: self.scene.edit_bg_image_opacity(x))
 
-        _bgg = self.menu_bar.addMenu('Grid')
+        _bgg = self.menu_bar.addMenu('Setting')
+        _bgi.setTearOffEnabled(True)
+        _bgi.setWindowTitle('Setting')
+        _pick.addSection('BG Grid')
         _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
         _draw_bg_grid_action.setChecked(self.scene.draw_bg_grid)
         _draw_bg_grid_action.triggered.connect(_draw_bg_grid_checked)
         _bgg.addAction(_draw_bg_grid_action)
+
 
     def add_many_picker(self):
         self.view.add_node_on_center(

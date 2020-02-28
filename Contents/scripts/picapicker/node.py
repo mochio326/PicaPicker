@@ -154,7 +154,7 @@ class Node(QtWidgets.QGraphicsObject):
         _x_candidate = {}
         _y_candidate = {}
 
-        for _n in self.view.get_nodes(self.__class__, True):
+        for _n in self.view.get_nodes(Node, True):
             if self == _n:
                 continue
             _x_deff = abs(_n.center.x() - self.center.x())
@@ -242,6 +242,9 @@ class BgNode(Node):
         self.snap = False
         self.movable = True
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+
+    def search_snap_node(self):
+        return None, None
 
     def mousePressEvent(self, event):
         # ここで選択できなくしておかないと前面のpickerを矩形選択できない

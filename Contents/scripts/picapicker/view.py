@@ -49,7 +49,7 @@ class View(QtWidgets.QGraphicsView):
         def __add_group_picker(pos):
             picker =[_item.id for _item in self.scene().selectedItems() if isinstance(_item, Picker)]
             g = GroupPicker(member_nodes_id=picker)
-            self.scene().add_item(g)
+            self.picker_init(g)
             g.setPos(pos)
             g.update()
 
@@ -79,7 +79,7 @@ class View(QtWidgets.QGraphicsView):
         return [_n for _n in _nodes if isinstance(_n, cls)]
 
     def add_node_on_center(self, node):
-        self.scene().add_item(node)
+        self.picker_init(node)
         _pos = self.mapToScene(self.width() / 2, self.height() / 2)
         node.setPos(_pos)
         node.update()
