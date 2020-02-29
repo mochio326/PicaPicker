@@ -55,85 +55,40 @@ View.drop_create_node = drop_create_node
 View.create_nods_from_dcc_selection = create_nods_from_dcc_selection
 
 
-class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
-    def __init__(self):
-        super(PickerWidget, self).__init__()
+class MenuBar(QtWidgets.QMenuBar):
 
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+    def __init__(self, parent):
+        super(MenuBar, self).__init__()
+        self.view = parent.view
+        self.scene = parent.scene
 
-        self.setWindowTitle('PicaPicker')
-
-        self.resize(600, 800)
-        self.menu_bar = QtWidgets.QMenuBar(self)
-
-        self.scene = Scene()
-        self.scene.setObjectName('Scene')
-        self.scene.setSceneRect(0, 0, 1000, 1000)
-        self.view = View(self.scene, self)
-
-        self.vbox = QtWidgets.QVBoxLayout()
-        self.vbox.setSpacing(2)
-        self.vbox.setContentsMargins(2, 2, 2, 2)
-        self.setLayout(self.vbox)
-        self.meke_menu_bar()
-        self.vbox.addWidget(self.menu_bar)
-        self.vbox.addWidget(self.view)
-
-    def menu_bar_visibility(self):
-        if self.scene.enable_edit:
-            self.menu_bar.show()
-        else:
-            self.menu_bar.hide()
-
-    def meke_menu_bar(self):
-
-        def _lock_bg_image_checked():
-            self.scene.lock_bg_image = _lock_bg_image_action.isChecked()
-            self.scene.enable_edit_change()
-
-        def _draw_bg_grid_checked():
-            self.scene.draw_bg_grid = _draw_bg_grid_action.isChecked()
-
-        def _snap_to_picker_checked():
-            self.scene.snap_to_node_flag = _snap_to_picker_action.isChecked()
-
-        def _snap_to_grid_checked():
-            self.scene.snap_to_grid_flag = _snap_to_grid_action.isChecked()
-
-        def _create_checkbox(menu, label, checked, connect_def):
-            action = QtWidgets.QAction(label, self, checkable=True)
-            action.setChecked(checked)
-            action.triggered.connect(connect_def)
-            menu.addAction(action)
-            return action
-
-
-        self.menu_bar = QtWidgets.QMenuBar(self)
-
-        _m_file = self.menu_bar.addMenu('File')
+        _m_file = self.addMenu('File')
         _m_file.setTearOffEnabled(True)
         _m_file.setWindowTitle('File')
         exit = QtWidgets.QAction('Exit', self)
         _m_file.addAction(exit)
 
-        _pick = self.menu_bar.addMenu('Picker')
+        _pick = self.addMenu('Picker')
         _pick.setTearOffEnabled(True)
         _pick.setWindowTitle('Picker')
-        _pick.addSection('Edit')
+
         _pick.addAction('Color', self.node_change_color)
         _pick.addAction('Size', self.picker_size)
         _pick.addAction('Set WireFrame Color', self.set_wire_frame_color)
         _pick.addSection('Add')
+        _pick.addAction('Picker', lambda: self.view.create_nods_from_dcc_selection(self.view.get_view_center_pos()))
         _pick.addAction('GroupPicker', lambda: self.view.add_node_on_center(
             GroupPicker(
                 member_nodes_id=[_item.id for _item in self.scene.selectedItems() if isinstance(_item, Picker)])))
+        _pick.addSection('Edit Group')
+        _pick.addAction('Add to Group', self.scene.add_to_group)
+        _pick.addAction('Remove from Group', self.scene.remove_from_group)
 
-        _bgi = self.menu_bar.addMenu('Image')
+        _bgi = self.addMenu('Image')
         _bgi.setTearOffEnabled(True)
         _bgi.setWindowTitle('Image')
 
-        _lock_bg_image_action = _create_checkbox(_bgi, 'Lock', self.scene.lock_bg_image, _lock_bg_image_checked)
+        _lock_bg_image_action = self._create_checkbox(_bgi, 'Lock', self.scene.lock_bg_image, self._lock_bg_image_checked)
 
         _bgop = _bgi.addMenu('Opacity')
 
@@ -143,15 +98,42 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             _bgop.addAction(_action)
             _action.triggered.connect(lambda x=j: self.scene.edit_bg_image_opacity(x))
 
-        _bgg = self.menu_bar.addMenu('Setting')
+        _bgg = self.addMenu('Setting')
         _bgg.setTearOffEnabled(True)
         _bgg.setWindowTitle('Setting')
-        _draw_bg_grid_action = _create_checkbox(_bgg, 'DrawGrid', self.scene.draw_bg_grid, _draw_bg_grid_checked)
+        self._draw_bg_grid_action = self._create_checkbox(_bgg, 'DrawGrid', self.scene.draw_bg_grid,
+                                                          self._draw_bg_grid_checked)
         _bgg.addSection('Snap')
-        _snap_to_picker_action = _create_checkbox(_bgg, 'Snap to Picker', self.scene.snap_to_node_flag, _snap_to_picker_checked)
-        _snap_to_grid_action = _create_checkbox(_bgg, 'Snap to Grid', self.scene.snap_to_grid_flag, _snap_to_grid_checked)
+        self._snap_to_picker_action = self._create_checkbox(_bgg, 'Snap to Picker', self.scene.snap_to_node_flag,
+                                                            self._snap_to_picker_checked)
+        self._snap_to_grid_action = self._create_checkbox(_bgg, 'Snap to Grid', self.scene.snap_to_grid_flag,
+                                                          self._snap_to_grid_checked)
 
+    def add_to_group(self):
+        self
 
+    def remove_from_group(self):
+        pass
+
+    def _lock_bg_image_checked(self):
+        self.scene.lock_bg_image = self._lock_bg_image_action.isChecked()
+        self.scene.enable_edit_change()
+
+    def _draw_bg_grid_checked(self):
+        self.scene.draw_bg_grid = self._draw_bg_grid_action.isChecked()
+
+    def _snap_to_picker_checked(self):
+        self.scene.snap_to_node_flag = self._snap_to_picker_action.isChecked()
+
+    def _snap_to_grid_checked(self):
+        self.scene.snap_to_grid_flag = self._snap_to_grid_action.isChecked()
+
+    def _create_checkbox(self, menu, label, checked, connect_def):
+        action = QtWidgets.QAction(label, self, checkable=True)
+        action.setChecked(checked)
+        action.triggered.connect(connect_def)
+        menu.addAction(action)
+        return action
 
     def add_many_picker(self):
         self.view.add_node_on_center(
@@ -184,6 +166,38 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         for _n in self.scene.get_selected_all_pick_nodes():
             _n.bg_color = color
             _n.update()
+
+
+class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
+    def __init__(self):
+        super(PickerWidget, self).__init__()
+
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+
+        self.setWindowTitle('PicaPicker')
+
+        self.resize(600, 800)
+
+        self.scene = Scene()
+        self.scene.setObjectName('Scene')
+        self.scene.setSceneRect(0, 0, 1000, 1000)
+        self.view = View(self.scene, self)
+
+        self.menu_bar = MenuBar(self)
+
+        self.vbox = QtWidgets.QVBoxLayout()
+        self.vbox.setSpacing(2)
+        self.vbox.setContentsMargins(2, 2, 2, 2)
+        self.setLayout(self.vbox)
+        self.vbox.addWidget(self.menu_bar)
+        self.vbox.addWidget(self.view)
+
+    def menu_bar_visibility(self):
+        if self.scene.enable_edit:
+            self.menu_bar.show()
+        else:
+            self.menu_bar.hide()
 
 
 class CanvasSizeInputDialog(QtWidgets.QDialog):

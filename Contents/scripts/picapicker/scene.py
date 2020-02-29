@@ -17,8 +17,6 @@ class Scene(QtWidgets.QGraphicsScene):
         self.snap_to_node_flag = True
         self.snap_to_grid_flag = True
 
-        # self.bg_image_opacity()
-
         # memo
         # itemをリストに入れて保持しておかないと
         # 大量のitemが追加された際にPySideがバグってしまう事があった
@@ -33,10 +31,17 @@ class Scene(QtWidgets.QGraphicsScene):
     def select_nodes(self):
         _target_dcc_nodes = []
         self.blockSignals(True)
+        for _item in self.items():
+            if isinstance(_item, Picker):
+                _item.group_select = False
+                _item.update()
+
         for _item in self.selectedItems():
             if isinstance(_item, GroupPicker) and not _item.drag:
                 for _n in _item.get_member_nodes():
-                    _n.setSelected(True)
+                    # _n.setSelected(True)
+                    _n.group_select = True
+                    _n.update()
                     _target_dcc_nodes.extend(_n.get_dcc_node())
             elif isinstance(_item, Picker):
                 _target_dcc_nodes.extend(_item.get_dcc_node())
@@ -62,8 +67,21 @@ class Scene(QtWidgets.QGraphicsScene):
             if isinstance(_i, BgNode):
                 _i.setOpacity(value)
 
+    def add_to_group(self):
+        _p = self.get_selected_pick_nodes()
+        for _g in self.get_selected_group_pick_nodes():
+            _g.add(_p)
+
+    def remove_from_group(self):
+        _p = self.get_selected_pick_nodes()
+        for _g in self.get_selected_group_pick_nodes():
+            _g.remove(_p)
+
     def get_selected_pick_nodes(self):
         return [_n for _n in self.selectedItems() if isinstance(_n, Picker)]
+
+    def get_selected_group_pick_nodes(self):
+        return [_n for _n in self.selectedItems() if isinstance(_n, GroupPicker)]
 
     def get_selected_all_pick_nodes(self):
         return [_n for _n in self.selectedItems() if isinstance(_n, (Picker, GroupPicker))]

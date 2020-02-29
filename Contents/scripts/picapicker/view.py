@@ -82,9 +82,11 @@ class View(QtWidgets.QGraphicsView):
 
     def add_node_on_center(self, node):
         self.picker_init(node)
-        _pos = self.mapToScene(self.width() / 2, self.height() / 2)
-        node.setPos(_pos)
+        node.setPos(self.get_view_center_pos())
         node.update()
+
+    def get_view_center_pos(self):
+        return self.mapToScene(self.width() / 2, self.height() / 2)
 
     def del_node_snapping_guide(self, type):
         if self._snap_guide[type] is not None:

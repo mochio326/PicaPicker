@@ -2,6 +2,7 @@
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 import uuid
 
+
 class Node(QtWidgets.QGraphicsObject):
     DEF_Z_VALUE = 0.1
 
@@ -208,6 +209,23 @@ class Picker(Node):
     def __init__(self, *args, **kwargs):
         super(Picker, self).__init__(*args, **kwargs)
         self.setAcceptDrops(True)
+        self.group_select = False
+
+        self.group_pen = QtGui.QPen()
+        self.group_pen.setStyle(QtCore.Qt.DotLine)
+        self.group_pen.setWidth(2)
+        self.group_pen.setColor(QtGui.QColor(255, 255, 0, 255))
+
+    def paint(self, painter, option, widget):
+        self.brush.setColor(self.bg_color)
+        painter.setBrush(self.brush)
+        if self.isSelected():
+            painter.setPen(self.sel_pen)
+        elif self.group_select:
+            painter.setPen(self.group_pen)
+        else:
+            painter.setPen(self.pen)
+        painter.drawRoundedRect(self.rect, 2.0, 2.0)
 
     def mouseMoveEvent(self, event):
         super(Picker, self).mouseMoveEvent(event)
@@ -242,6 +260,16 @@ class GroupPicker(Node):
         else:
             painter.setPen(self.pen)
         painter.drawRoundedRect(self.rect, 20.0, 20.0)
+
+    def add(self, nodes):
+        _nodes_id = [_n.id for _n in nodes]
+        self.member_nodes_id.extend(_nodes_id)
+        self.member_nodes_id = list(set(self.member_nodes_id))
+
+    def remove(self, nodes):
+        _nodes_id = [_n.id for _n in nodes]
+        for _id in _nodes_id:
+            self.member_nodes_id.remove(_id)
 
 
 class BgNode(Node):
