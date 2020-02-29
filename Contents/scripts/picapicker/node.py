@@ -6,12 +6,12 @@ class Node(QtWidgets.QGraphicsObject):
     DEF_Z_VALUE = 0.1
 
     # 移動中常に発動
-    moveing = QtCore.Signal()
+    moving = QtCore.Signal()
     # 移動後に発動
     pos_changed = QtCore.Signal()
 
-    node_snap = QtCore.Signal(QtCore.QPointF, QtCore.QPointF, str)
-    end_node_snap = QtCore.Signal(str)
+    node_snapping = QtCore.Signal(QtCore.QPointF, QtCore.QPointF, str)
+    node_snapped = QtCore.Signal(str)
 
     @property
     def view(self):
@@ -36,7 +36,7 @@ class Node(QtWidgets.QGraphicsObject):
         self.width = width
         self.height = height
         self.drag = False
-        self.snap = True
+        self.snap_to_node = True
         if bg_color is None:
             self.bg_color = QtGui.QColor(60, 60, 60, 255)
         else:
@@ -92,6 +92,8 @@ class Node(QtWidgets.QGraphicsObject):
             self.drag = True
             # 見やすくするために最前面表示
             # self.setZValue(100.0)
+            self.drag_event_origin = self.mapToScene(event.pos())
+            self.drag_node_origin = self.pos()
 
         super(Node, self).mousePressEvent(event)
 
@@ -100,21 +102,37 @@ class Node(QtWidgets.QGraphicsObject):
 
         if self.drag:
             super(Node, self).mouseMoveEvent(event)
-            self.moveing.emit()
+
+
+            self.moving.emit()
             # print self.center
-            if self.snap:
+            if self.snap_to_node:
                 x_node, y_node = self.search_snap_node()
                 if x_node is not None:
                     self.setX(x_node.x())
-                    self.node_snap.emit(self.center, x_node.center, 'x')
                 else:
-                    self.end_node_snap.emit('x')
+                    self.node_snapped.emit('x')
 
                 if y_node is not None:
                     self.setY(y_node.y())
-                    self.node_snap.emit(self.center, y_node.center, 'y')
                 else:
-                    self.end_node_snap.emit('y')
+                    self.node_snapped.emit('y')
+
+            # ノードの位置補正後にライン表示しないとラインの始点がノードと違う位置になってしまう
+            if x_node is not None:
+                self.node_snapping.emit(self.center, x_node.center, 'x')
+            if y_node is not None:
+                self.node_snapping.emit(self.center, y_node.center, 'y')
+
+            # 複数ノードをドラッグしていた場合にactiveなノードと同じ差分を考慮する
+            # ことで、ドラッグノード同士の位置関係を維持する
+            event_deff = self.drag_event_origin - self.mapToScene(event.pos())
+            node_deff = self.drag_node_origin - self.pos()
+            for _n in self.scene().selectedItems():
+                if _n == self:
+                    continue
+                _n.setPos(_n.pos() + event_deff - node_deff)
+
             self.scene().update()
 
     def mouseReleaseEvent(self, event):
@@ -128,11 +146,11 @@ class Node(QtWidgets.QGraphicsObject):
             for _i, _n in enumerate(node_z_list):
                 _n[1].setZValue(self.DEF_Z_VALUE + 0.01 * _i)
             super(Node, self).mouseReleaseEvent(event)
-            self.moveing.emit()
+            self.moving.emit()
             self.pos_changed.emit()
 
-            self.end_node_snap.emit('x')
-            self.end_node_snap.emit('y')
+            self.node_snapped.emit('x')
+            self.node_snapped.emit('y')
 
     def hoverEnterEvent(self, event):
         QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), self._tooltip)
@@ -239,12 +257,16 @@ class BgNode(Node):
         self.width = self.image.width()
         self.height = self.image.height()
         self.setAcceptHoverEvents(False)
-        self.snap = False
+        self.snap_to_node = False
         self.movable = True
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
 
     def search_snap_node(self):
         return None, None
+
+    def mouseMoveEvent(self, event):
+        if self.drag:
+            super(BgNode, self).mouseMoveEvent(event)
 
     def mousePressEvent(self, event):
         # ここで選択できなくしておかないと前面のpickerを矩形選択できない

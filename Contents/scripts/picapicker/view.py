@@ -60,10 +60,12 @@ class View(QtWidgets.QGraphicsView):
         _enable_edit_action.triggered.connect(__enable_edit_checked)
         _menu.addAction(_enable_edit_action)
 
+        if not self.scene().enable_edit:
+            _menu.exec_(cursor)
+            return
+
         _menu.addSection('Add')
-
         _menu.addAction('Picker', lambda: self.create_nods_from_dcc_selection(self.mapToScene(event)))
-
         _menu.addAction('GroupPicker', lambda: __add_group_picker(self.mapToScene(event)))
 
         _menu.exec_(cursor)
@@ -84,13 +86,13 @@ class View(QtWidgets.QGraphicsView):
         node.setPos(_pos)
         node.update()
 
-    def del_node_snap_guide(self, type):
+    def del_node_snapping_guide(self, type):
         if self._snap_guide[type] is not None:
             self.scene().remove_item(self._snap_guide[type])
             self._snap_guide[type] = None
 
-    def show_node_snap_guide(self, pos_a, pos_b, type):
-        self.del_node_snap_guide(type)
+    def show_node_snapping_guide(self, pos_a, pos_b, type):
+        self.del_node_snapping_guide(type)
         self._snap_guide[type] = Line(pos_a, pos_b)
         self.scene().add_item(self._snap_guide[type])
 
@@ -147,8 +149,8 @@ class View(QtWidgets.QGraphicsView):
         self.scene().add_item(picker_instance)
         if opacity is not None:
             picker_instance.setOpacity(opacity)
-        picker_instance.node_snap.connect(self.show_node_snap_guide)
-        picker_instance.end_node_snap.connect(self.del_node_snap_guide)
+        picker_instance.node_snapping.connect(self.show_node_snapping_guide)
+        picker_instance.node_snapped.connect(self.del_node_snapping_guide)
 
     def pickers_placement(self, pickers, pos_origin, opacity=None):
         # 複数のpickerノードを横一列にいい感じに配置する
