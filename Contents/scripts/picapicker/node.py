@@ -36,7 +36,6 @@ class Node(QtWidgets.QGraphicsObject):
         self.width = width
         self.height = height
         self.drag = False
-        self.snap_to_node = True
         if bg_color is None:
             self.bg_color = QtGui.QColor(60, 60, 60, 255)
         else:
@@ -102,11 +101,9 @@ class Node(QtWidgets.QGraphicsObject):
 
         if self.drag:
             super(Node, self).mouseMoveEvent(event)
-
-
             self.moving.emit()
-            # print self.center
-            if self.snap_to_node:
+
+            if self.scene().snap_to_node_flag:
                 x_node, y_node = self.search_snap_node()
                 if x_node is not None:
                     self.setX(x_node.x())
@@ -118,21 +115,23 @@ class Node(QtWidgets.QGraphicsObject):
                 else:
                     self.node_snapped.emit('y')
 
-            # ノードの位置補正後にライン表示しないとラインの始点がノードと違う位置になってしまう
-            if x_node is not None:
-                self.node_snapping.emit(self.center, x_node.center, 'x')
-            if y_node is not None:
-                self.node_snapping.emit(self.center, y_node.center, 'y')
+                # ノードの位置補正後にライン表示しないとラインの始点がノードと違う位置になってしまう
+                if x_node is not None:
+                    self.node_snapping.emit(self.center, x_node.center, 'x')
+                if y_node is not None:
+                    self.node_snapping.emit(self.center, y_node.center, 'y')
 
-            # 複数ノードをドラッグしていた場合にactiveなノードと同じ差分を考慮する
-            # ことで、ドラッグノード同士の位置関係を維持する
-            event_deff = self.drag_event_origin - self.mapToScene(event.pos())
-            node_deff = self.drag_node_origin - self.pos()
-            for _n in self.scene().selectedItems():
-                if _n == self:
-                    continue
-                _n.setPos(_n.pos() + event_deff - node_deff)
+                # 複数ノードをドラッグしていた場合にactiveなノードと同じ差分を考慮する
+                # ことで、ドラッグノード同士の位置関係を維持する
+                event_deff = self.drag_event_origin - self.mapToScene(event.pos())
+                node_deff = self.drag_node_origin - self.pos()
+                for _n in self.scene().selectedItems():
+                    if _n == self:
+                        continue
+                    _n.setPos(_n.pos() + event_deff - node_deff)
 
+            for n in self.scene().selectedItems():
+                self.scene().node_snap_to_grid(n)
             self.scene().update()
 
     def mouseReleaseEvent(self, event):
@@ -257,7 +256,6 @@ class BgNode(Node):
         self.width = self.image.width()
         self.height = self.image.height()
         self.setAcceptHoverEvents(False)
-        self.snap_to_node = False
         self.movable = True
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
 

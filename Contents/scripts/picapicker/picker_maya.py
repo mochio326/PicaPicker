@@ -95,6 +95,20 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         def _draw_bg_grid_checked():
             self.scene.draw_bg_grid = _draw_bg_grid_action.isChecked()
 
+        def _snap_to_picker_checked():
+            self.scene.snap_to_node_flag = _snap_to_picker_action.isChecked()
+
+        def _snap_to_grid_checked():
+            self.scene.snap_to_grid_flag = _snap_to_grid_action.isChecked()
+
+        def _create_checkbox(menu, label, checked, connect_def):
+            action = QtWidgets.QAction(label, self, checkable=True)
+            action.setChecked(checked)
+            action.triggered.connect(connect_def)
+            menu.addAction(action)
+            return action
+
+
         self.menu_bar = QtWidgets.QMenuBar(self)
 
         _m_file = self.menu_bar.addMenu('File')
@@ -118,10 +132,9 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         _bgi = self.menu_bar.addMenu('Image')
         _bgi.setTearOffEnabled(True)
         _bgi.setWindowTitle('Image')
-        _lock_bg_image_action = QtWidgets.QAction('Lock', self, checkable=True)
-        _lock_bg_image_action.setChecked(self.scene.lock_bg_image)
-        _lock_bg_image_action.triggered.connect(_lock_bg_image_checked)
-        _bgi.addAction(_lock_bg_image_action)
+
+        _lock_bg_image_action = _create_checkbox(_bgi, 'Lock', self.scene.lock_bg_image, _lock_bg_image_checked)
+
         _bgop = _bgi.addMenu('Opacity')
 
         ag = QtWidgets.QActionGroup(_bgop, exclusive=True)
@@ -131,13 +144,13 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             _action.triggered.connect(lambda x=j: self.scene.edit_bg_image_opacity(x))
 
         _bgg = self.menu_bar.addMenu('Setting')
-        _bgi.setTearOffEnabled(True)
-        _bgi.setWindowTitle('Setting')
-        _pick.addSection('BG Grid')
-        _draw_bg_grid_action = QtWidgets.QAction('Draw', self, checkable=True)
-        _draw_bg_grid_action.setChecked(self.scene.draw_bg_grid)
-        _draw_bg_grid_action.triggered.connect(_draw_bg_grid_checked)
-        _bgg.addAction(_draw_bg_grid_action)
+        _bgg.setTearOffEnabled(True)
+        _bgg.setWindowTitle('Setting')
+        _draw_bg_grid_action = _create_checkbox(_bgg, 'DrawGrid', self.scene.draw_bg_grid, _draw_bg_grid_checked)
+        _bgg.addSection('Snap')
+        _snap_to_picker_action = _create_checkbox(_bgg, 'Snap to Picker', self.scene.snap_to_node_flag, _snap_to_picker_checked)
+        _snap_to_grid_action = _create_checkbox(_bgg, 'Snap to Grid', self.scene.snap_to_grid_flag, _snap_to_grid_checked)
+
 
 
     def add_many_picker(self):
@@ -147,14 +160,14 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
     def picker_size(self):
         w = 20
         h = 20
-        sel = self.scene.get_selected_pick_nodes()
+        sel = self.scene.get_selected_all_pick_nodes()
         if len(sel) > 0:
             w = sel[0].width
             h = sel[0].height
         w, h, result = CanvasSizeInputDialog.get_canvas_size(self, w, h)
         if not result:
             return
-        for _n in self.scene.get_selected_pick_nodes():
+        for _n in self.scene.get_selected_all_pick_nodes():
             _n.width = w
             _n.height = h
             _n.update()
@@ -168,7 +181,7 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(60, 60, 60, 255), self)
         if not color.isValid():
             return
-        for _n in self.scene.get_selected_pick_nodes():
+        for _n in self.scene.get_selected_all_pick_nodes():
             _n.bg_color = color
             _n.update()
 

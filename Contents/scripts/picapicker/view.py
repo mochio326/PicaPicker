@@ -156,6 +156,7 @@ class View(QtWidgets.QGraphicsView):
         # 複数のpickerノードを横一列にいい感じに配置する
         for i, _n in enumerate(pickers):
             _n.setPos(pos_origin.x() + (_n.rect.width() + 10) * i, pos_origin.y())
+            self.scene().node_snap_to_grid(_n)
             if property is not None:
                 _n.setOpacity(opacity)
             _n.update()

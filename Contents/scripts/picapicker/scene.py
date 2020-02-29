@@ -14,12 +14,21 @@ class Scene(QtWidgets.QGraphicsScene):
         self.grid_width = 20
         self.grid_height = 20
 
+        self.snap_to_node_flag = True
+        self.snap_to_grid_flag = True
+
         # self.bg_image_opacity()
 
         # memo
         # itemをリストに入れて保持しておかないと
         # 大量のitemが追加された際にPySideがバグってしまう事があった
         self.add_items = []
+
+    def node_snap_to_grid(self, node):
+        if not self.snap_to_grid_flag:
+            return
+        node.setX(node.x() - node.x() % self.grid_width)
+        node.setY(node.y() - node.y() % self.grid_height)
 
     def select_nodes(self):
         _target_dcc_nodes = []
@@ -55,6 +64,9 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def get_selected_pick_nodes(self):
         return [_n for _n in self.selectedItems() if isinstance(_n, Picker)]
+
+    def get_selected_all_pick_nodes(self):
+        return [_n for _n in self.selectedItems() if isinstance(_n, (Picker, GroupPicker))]
 
     def drawBackground(self, painter, rect):
 
