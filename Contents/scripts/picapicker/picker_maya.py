@@ -23,18 +23,14 @@ def select_dcc_nodes(self, node_list):
 
 def drop_create_node(self, text, pos):
     split_text = re.split('\||:', text)
-    # if len(split_text) != 2:
-    #     return
-    # class_name, node_name = split_text
-
     node = cmds.ls(text)[0]
-    bg_color = get_color(node)
+    bg_color = get_color(self, node)
     n = Picker(label=split_text[-1], bg_color=bg_color)
     n.setPos(pos)
     return n
 
 
-def get_color(node):
+def get_color(self, node):
     # 描画のオーバーライドの色
     if not cmds.getAttr(node + '.overrideEnabled'):
         return None
