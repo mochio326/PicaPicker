@@ -79,7 +79,7 @@ class MenuBar(QtWidgets.QMenuBar):
         _pick.addAction('Picker', lambda: self.view.create_nods_from_dcc_selection(self.view.get_view_center_pos()))
         _pick.addAction('GroupPicker', lambda: self.view.add_node_on_center(
             GroupPicker(
-                member_nodes_id=[_item.id for _item in self.scene.selectedItems() if isinstance(_item, Picker)])))
+                member_nodes_id={_item.id for _item in self.scene.selectedItems() if isinstance(_item, Picker)})))
         _pick.addSection('Edit Group')
         _pick.addAction('Add to Group', self.scene.add_to_group)
         _pick.addAction('Remove from Group', self.scene.remove_from_group)

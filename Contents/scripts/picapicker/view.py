@@ -47,7 +47,7 @@ class View(QtWidgets.QGraphicsView):
             self.parent().menu_bar_visibility()
 
         def __add_group_picker(pos):
-            picker =[_item.id for _item in self.scene().selectedItems() if isinstance(_item, Picker)]
+            picker = {_item.id for _item in self.scene().selectedItems() if isinstance(_item, Picker)}
             g = GroupPicker(member_nodes_id=picker)
             self.picker_init(g)
             g.setPos(pos)

@@ -15,7 +15,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.grid_height = 20
 
         self.snap_to_node_flag = True
-        self.snap_to_grid_flag = True
+        self.snap_to_grid_flag = False
 
         # memo
         # itemをリストに入れて保持しておかないと

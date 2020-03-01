@@ -222,6 +222,10 @@ class Picker(Node):
         if self.isSelected():
             painter.setPen(self.sel_pen)
         elif self.group_select:
+            _b = QtGui.QBrush()
+            _b.setStyle(QtCore.Qt.Dense5Pattern)
+            _b.setColor(self.bg_color)
+            painter.setBrush(_b)
             painter.setPen(self.group_pen)
         else:
             painter.setPen(self.pen)
@@ -245,7 +249,7 @@ class GroupPicker(Node):
     def __init__(self, member_nodes_id=None, *args, **kwargs):
         super(GroupPicker, self).__init__(*args, **kwargs)
         self.setAcceptDrops(True)
-        self.member_nodes_id = []
+        self.member_nodes_id = {}
         if member_nodes_id is not None:
             self.member_nodes_id = member_nodes_id
 
@@ -262,14 +266,10 @@ class GroupPicker(Node):
         painter.drawRoundedRect(self.rect, 20.0, 20.0)
 
     def add(self, nodes):
-        _nodes_id = [_n.id for _n in nodes]
-        self.member_nodes_id.extend(_nodes_id)
-        self.member_nodes_id = list(set(self.member_nodes_id))
+        self.member_nodes_id |= {_n.id for _n in nodes}
 
     def remove(self, nodes):
-        _nodes_id = [_n.id for _n in nodes]
-        for _id in _nodes_id:
-            self.member_nodes_id.remove(_id)
+        self.member_nodes_id -= {_n.id for _n in nodes}
 
 
 class BgNode(Node):
