@@ -172,7 +172,7 @@ class Node(QtWidgets.QGraphicsObject):
         _x_candidate = {}
         _y_candidate = {}
 
-        for _n in self.view.get_nodes(Node, True):
+        for _n in self.view.get_nodes((GroupPicker, Picker), True):
             if self == _n:
                 continue
             _x_deff = abs(_n.center.x() - self.center.x())
