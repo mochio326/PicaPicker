@@ -99,7 +99,6 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def set_wire_frame_color(self):
         for _n in self.scene.get_selected_pick_nodes():
-            print _n.get_dcc_node()
             _n.bg_color = self.get_node_color(_n.get_dcc_node()[0])
             _n.update()
 

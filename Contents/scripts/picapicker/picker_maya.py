@@ -10,7 +10,7 @@ import re
 
 
 def get_dcc_node(self):
-    node_name = self.label
+    node_name = self.node_name
     if self.scene().namespace is not None:
         return cmds.ls('{0}:{1}'.format(self.scene().namespace, node_name))
     else:
@@ -25,7 +25,7 @@ def drop_create_node(self, text, pos):
     split_text = re.split('\||:', text)
     node = cmds.ls(text)[0]
     bg_color = get_color(self, node)
-    n = Picker(label=split_text[-1], bg_color=bg_color)
+    n = Picker(node_name=split_text[-1], bg_color=bg_color)
     n.setPos(pos)
     return n
 
@@ -48,6 +48,9 @@ def create_nods_from_dcc_selection(self, pos):
     nodes = [drop_create_node(self, _s, pos) for _s in _select]
     [self.picker_init(_n, 1) for _n in nodes]
     self.pickers_placement(nodes, pos, 1)
+
+
+# ---- Maya独自の関数や変数を入れ込む ----
 
 
 Picker.get_dcc_node = get_dcc_node
@@ -83,12 +86,23 @@ class NameSpaceWidget(QtWidgets.QWidget):
         self.hbox.addWidget(_label)
 
         self.combo = QtWidgets.QComboBox()
-        _name_space_list = list(set(cmds.namespaceInfo(recurse=1, listOnlyNamespaces=1)) - {u'UI', u'shared'})
-        _name_space_list[0:0] = ['']
-
-        self.combo.addItems(_name_space_list)
         self.combo.currentTextChanged.connect(self._change_name_space)
         self.hbox.addWidget(self.combo)
+        self._reload_name_space_list()
+
+        self.ns_button = QtWidgets.QPushButton(u'🔁')
+        self.ns_button.pressed.connect(self._reload_name_space_list)
+        self.hbox.addWidget(self.ns_button)
+
+    def _reload_name_space_list(self):
+        ns = list(set(cmds.namespaceInfo(recurse=1, listOnlyNamespaces=1)) - {u'UI', u'shared'})
+        ns[0:0] = ['']
+        _v = self.combo.currentText()
+        self.combo.clear()
+        self.combo.addItems(ns)
+        if _v in ns:
+            self.combo.setCurrentIndex(ns.index(_v))
+        self._change_name_space()
 
     def _change_name_space(self):
         _v = self.combo.currentText()

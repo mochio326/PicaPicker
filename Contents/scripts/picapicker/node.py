@@ -206,10 +206,11 @@ class Picker(Node):
         """
         pass
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, node_name, *args, **kwargs):
         super(Picker, self).__init__(*args, **kwargs)
         self.setAcceptDrops(True)
         self.group_select = False
+        self.node_name = node_name
 
         self.group_pen = QtGui.QPen()
         self.group_pen.setStyle(QtCore.Qt.DotLine)
@@ -230,6 +231,12 @@ class Picker(Node):
         else:
             painter.setPen(self.pen)
         painter.drawRoundedRect(self.rect, 2.0, 2.0)
+
+        # painter.setPen(self.pen)
+        # painter.setFont(QtGui.QFont('Decorative', 10, QtGui.QFont.Bold))
+        # rect = self.boundingRect()
+        # rect.moveTop(rect.y() - 2)
+        # painter.drawText(rect, QtCore.Qt.AlignCenter, self.label)
 
     def mouseMoveEvent(self, event):
         super(Picker, self).mouseMoveEvent(event)
