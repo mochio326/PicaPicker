@@ -5,16 +5,67 @@ from .scene import Scene
 from .menu import MenuBar
 from .node import Picker
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+from maya.api import OpenMaya as om2
 from maya import cmds
 import re
 
 
+def get_shortname(search):
+    search = re.sub(r'^.+:', '', str(search))
+    if ('|' in search) is True:
+        split_number = search.rfind('|')
+        search = search[split_number + 1:len(search)]
+    return search
+
+
+def find_children(findname='*', root_node='', node_type=None, recursive=True):
+    u"""
+    指定した名前とタイプでオブジェクトを取得
+    *にも対応
+    recursive : 再帰的に検索するか True[def]:再帰的 Flase:直接の子のみ
+    """
+
+    def append_loop_main(root, list):
+        if node_type is None:
+            childobject = cmds.listRelatives(root, ad=recursive, f=1)
+        else:
+            childobject = cmds.listRelatives(root, ad=recursive, f=1, type=node_type)
+        if childobject is None:
+            return list
+        for node in childobject:
+            search = get_shortname(node)
+            match_object = pattern.match(search)
+            if match_object:
+                list.append(node)
+        return list
+
+    nodes = []
+    # ワイルドカード対応
+    if '*' in findname:
+        findname = findname.replace("*", ".*")
+    pattern = re.compile(r'^%s$' % findname)
+
+    # 指定ノード以下
+    nodes = append_loop_main(root_node, nodes)
+
+    # 取得したリスト内容が孫から子へと逆順になってる
+    if len(nodes) > 0:
+        nodes.reverse()
+
+    return nodes
+
+
 def get_dcc_node(self):
     node_name = self.node_name
-    if self.scene().namespace is not None:
-        return cmds.ls('{0}:{1}'.format(self.scene().namespace, node_name))
+
+    if self.scene().select_type == 1:
+        if self.scene().namespace is not None:
+            return cmds.ls('{0}:{1}'.format(self.scene().namespace, node_name))
     else:
-        return cmds.ls(node_name, recursive=True)
+        if self.scene().root_node is not None:
+            return find_children(node_name, self.scene().root_node)
+
+    return cmds.ls(node_name, recursive=True)
 
 
 def select_dcc_nodes(self, node_list):
@@ -56,6 +107,8 @@ def create_nods_from_dcc_selection(self, pos):
 Picker.get_dcc_node = get_dcc_node
 Scene.select_dcc_nodes = select_dcc_nodes
 Scene.namespace = None
+Scene.root_node = None
+Scene.select_type = 1  # 1:namespace 0:root_node
 View.drop_create_node = drop_create_node
 View.create_nods_from_dcc_selection = create_nods_from_dcc_selection
 MenuBar.get_node_color = get_color
@@ -82,30 +135,71 @@ class NameSpaceWidget(QtWidgets.QWidget):
 
         self.hbox.addStretch(1)
 
-        _label = QtWidgets.QLabel('Namespace : ')
-        self.hbox.addWidget(_label)
-
-        self.combo = QtWidgets.QComboBox()
-        self.combo.currentTextChanged.connect(self._change_name_space)
-        self.hbox.addWidget(self.combo)
+        self.ns_combo = QtWidgets.QComboBox()
+        self.ns_combo.currentTextChanged.connect(self._change_name_space)
+        self.hbox.addWidget(self.ns_combo)
         self._reload_name_space_list()
 
         self.ns_button = QtWidgets.QPushButton(u'🔁')
         self.ns_button.pressed.connect(self._reload_name_space_list)
         self.hbox.addWidget(self.ns_button)
 
+        self.root_node_name = QtWidgets.QLabel('')
+        self.hbox.addWidget(self.root_node_name)
+
+        self.root_button = QtWidgets.QPushButton('Get')
+        self.root_button.pressed.connect(self._get_root_node)
+        self.hbox.addWidget(self.root_button)
+
+        self.hbox.addWidget(QtWidgets.QLabel(' | '))
+
+        self.type = QtWidgets.QRadioButton('Namespace')
+        self.hbox.addWidget(self.type)
+        self.type.setChecked(self.scene.select_type)
+        _r = QtWidgets.QRadioButton('RootNode')
+        self.hbox.addWidget(_r)
+        self.type.toggled.connect(self.type_changed)
+        self.type_changed()
+
+    def type_changed(self):
+        self.scene.select_type = int(self.type.isChecked())
+        if self.type.isChecked():
+            self.ns_combo.show()
+            self.ns_button.show()
+            self.root_node_name.hide()
+            self.root_button.hide()
+        else:
+            self.ns_combo.hide()
+            self.ns_button.hide()
+            self.root_node_name.show()
+            self.root_button.show()
+        self.scene.select_nodes()
+
+    def _get_root_node(self):
+        sel = cmds.ls(sl=True)
+        if len(sel) == 0:
+            self.scene.root_node = None
+            self.root_node_name.setText('')
+            return
+        m_sel = om2.MGlobal.getSelectionListByName(sel[0])
+        dag = m_sel.getDagPath(0)
+        self.scene.root_node = dag
+        self.root_node_name.setText(dag.partialPathName() + ' ')
+        self.scene.select_nodes()
+        return
+
     def _reload_name_space_list(self):
         ns = list(set(cmds.namespaceInfo(recurse=1, listOnlyNamespaces=1)) - {u'UI', u'shared'})
         ns[0:0] = ['']
-        _v = self.combo.currentText()
-        self.combo.clear()
-        self.combo.addItems(ns)
+        _v = self.ns_combo.currentText()
+        self.ns_combo.clear()
+        self.ns_combo.addItems(ns)
         if _v in ns:
-            self.combo.setCurrentIndex(ns.index(_v))
+            self.ns_combo.setCurrentIndex(ns.index(_v))
         self._change_name_space()
 
     def _change_name_space(self):
-        _v = self.combo.currentText()
+        _v = self.ns_combo.currentText()
         self.scene.namespace = None if _v == '' else _v
         self.scene.select_nodes()
 
@@ -145,7 +239,6 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             self.menu_bar.show()
         else:
             self.menu_bar.hide()
-
 
 
 '''
