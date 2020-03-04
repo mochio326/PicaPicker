@@ -10,7 +10,7 @@ from maya import cmds
 import re
 
 
-def get_shortname(search):
+def get_short_name(search):
     search = re.sub(r'^.+:', '', str(search))
     if ('|' in search) is True:
         split_number = search.rfind('|')
@@ -24,29 +24,22 @@ def find_children(findname='*', root_node='', node_type=None, recursive=True):
     *にも対応
     recursive : 再帰的に検索するか True[def]:再帰的 Flase:直接の子のみ
     """
-
-    def append_loop_main(root, list):
-        if node_type is None:
-            childobject = cmds.listRelatives(root, ad=recursive, f=1)
-        else:
-            childobject = cmds.listRelatives(root, ad=recursive, f=1, type=node_type)
-        if childobject is None:
-            return list
-        for node in childobject:
-            search = get_shortname(node)
-            match_object = pattern.match(search)
-            if match_object:
-                list.append(node)
-        return list
-
-    nodes = []
     # ワイルドカード対応
     if '*' in findname:
         findname = findname.replace("*", ".*")
     pattern = re.compile(r'^%s$' % findname)
 
-    # 指定ノード以下
-    nodes = append_loop_main(root_node, nodes)
+    nodes = []
+    if node_type is None:
+        _children = cmds.listRelatives(root_node, ad=recursive, f=1)
+    else:
+        _children = cmds.listRelatives(root_node, ad=recursive, f=1, type=node_type)
+    if _children is not None:
+        for _n in _children:
+            sn = get_short_name(_n)
+            if not pattern.match(sn):
+                continue
+            nodes.append(_n)
 
     # 取得したリスト内容が孫から子へと逆順になってる
     if len(nodes) > 0:
