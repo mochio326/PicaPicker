@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from .node import Picker, BgNode, GroupPicker
+from .line import Line
+import sqlite3
 
 
 class Scene(QtWidgets.QGraphicsScene):
@@ -16,11 +18,79 @@ class Scene(QtWidgets.QGraphicsScene):
 
         self.snap_to_node_flag = True
         self.snap_to_grid_flag = False
+        self._snap_guide = {'x': None, 'y': None}
 
         # memo
         # itemをリストに入れて保持しておかないと
         # 大量のitemが追加された際にPySideがバグってしまう事があった
         self.add_items = []
+
+    def table_is_exists(self, cursor, tebel_name):
+        cursor.execute("""
+            SELECT COUNT(*) FROM sqlite_master 
+            WHERE TYPE='table' AND name='{0}'
+            """.format(tebel_name))
+        if cursor.fetchone()[0] == 0:
+            return False
+        return True
+
+    def load(self):
+        for _i in self.items():
+            self.remove_item(_i)
+        conn = sqlite3.connect(r'c:\temp\sample3.picap')
+        cursor = conn.cursor()
+        for row in cursor.execute('select * from picker'):
+            _n = Picker()
+            self.picker_init(_n, 1)
+            _n.load_data(row)
+            _n.update()
+        if self.table_is_exists(cursor, 'group_picker'):
+            for row in cursor.execute('select * from group_picker'):
+                _n = GroupPicker()
+                self.picker_init(_n, 1)
+                _n.load_data(row)
+                _n.update()
+        conn.close()
+
+    def save(self):
+        conn = sqlite3.connect(r'c:\temp\sample3.picap')
+        conn.text_factory = str
+        cursor = conn.cursor()
+
+        cursor.execute('DROP TABLE IF EXISTS picker')
+        cursor.execute(
+            'CREATE TABLE picker(id text PRIMARY KEY, x real, y real, width integer, height integer, node_name text, label text, bg_color text)')
+        _data = [_n.get_save_data() for _n in self.items() if isinstance(_n, Picker)]
+        cursor.executemany("insert into picker values (?,?,?,?,?,?,?,?)", _data)
+
+        cursor.execute('DROP TABLE IF EXISTS group_picker')
+        cursor.execute(
+            'CREATE TABLE group_picker(id text PRIMARY KEY, x real, y real, width integer, height integer, member_nodes_id text, label text, bg_color text)')
+        _data = [_n.get_save_data() for _n in self.items() if isinstance(_n, GroupPicker)]
+        cursor.executemany("insert into group_picker values (?,?,?,?,?,?,?,?)", _data)
+
+
+        conn.commit()
+        conn.close()
+
+    def del_node_snapping_guide(self, type):
+        if self._snap_guide[type] is not None:
+            self.remove_item(self._snap_guide[type])
+            self._snap_guide[type] = None
+
+    def show_node_snapping_guide(self, pos_a, pos_b, type):
+        self.del_node_snapping_guide(type)
+        self._snap_guide[type] = Line(pos_a, pos_b)
+        self.add_item(self._snap_guide[type])
+
+    def picker_init(self, picker_instance, opacity=None):
+        # picker作った際に必要な初期設定を行っとく
+        self.add_item(picker_instance)
+        if opacity is not None:
+            picker_instance.setOpacity(opacity)
+        picker_instance.node_snapping.connect(self.show_node_snapping_guide)
+        picker_instance.node_snapped.connect(self.del_node_snapping_guide)
+
 
     def node_snap_to_grid(self, node):
         if not self.snap_to_grid_flag:

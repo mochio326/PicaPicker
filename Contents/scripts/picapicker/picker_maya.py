@@ -90,7 +90,7 @@ def get_color(self, node):
 def create_nods_from_dcc_selection(self, pos):
     _select = cmds.ls(sl=True, l=True)
     nodes = [drop_create_node(self, _s, pos) for _s in _select]
-    [self.picker_init(_n, 1) for _n in nodes]
+    [self.scene().picker_init(_n, 1) for _n in nodes]
     self.pickers_placement(nodes, pos, 1)
 
 

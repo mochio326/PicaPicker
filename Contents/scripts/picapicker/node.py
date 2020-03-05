@@ -29,7 +29,7 @@ class Node(QtWidgets.QGraphicsObject):
     def rect(self):
         return QtCore.QRect(0, 0, self.width, self.height)
 
-    def __init__(self, name='', width=30, height=30, label='node', bg_color=None):
+    def __init__(self, name='', width=30, height=30, label='', bg_color=None):
         super(Node, self).__init__()
         self.id = str(uuid.uuid4())
         self.name = name
@@ -199,14 +199,29 @@ class Node(QtWidgets.QGraphicsObject):
 class Picker(Node):
     DEF_Z_VALUE = 10
 
-    def get_dcc_node(self):
-        """
-        DCCツール側のノード情報を戻す
-        :return:
-        """
-        pass
+    def get_save_data(self):
+        return (
+            self.id,
+            self.x(),
+            self.y(),
+            self.width,
+            self.height,
+            self.node_name,
+            self.label,
+            self.bg_color.rgba()
+        )
 
-    def __init__(self, node_name, *args, **kwargs):
+    def load_data(self, data):
+        self.id = data[0]
+        self.setX(data[1])
+        self.setY(data[2])
+        self.width = data[3]
+        self.height = data[4]
+        self.node_name = data[5]
+        self.label = data[6]
+        self.bg_color.setRgba(int(data[7]))
+
+    def __init__(self, node_name='', *args, **kwargs):
         super(Picker, self).__init__(*args, **kwargs)
         self.setAcceptDrops(True)
         self.group_select = False
@@ -249,9 +264,38 @@ class Picker(Node):
             drag.setHotSpot(QtCore.QPoint(event.pos().x() - self.pos().x(), event.pos().y() - self.pos().y()))
             dropAction = drag.exec_(QtCore.Qt.MoveAction)
 
+    def get_dcc_node(self):
+        """
+        DCCツール側のノード情報を戻す
+        :return:
+        """
+        pass
+
 
 class GroupPicker(Node):
     DEF_Z_VALUE = 10
+
+    def get_save_data(self):
+        return (
+            self.id,
+            self.x(),
+            self.y(),
+            self.width,
+            self.height,
+            None if self.member_nodes_id is None else ','.join(self.member_nodes_id),
+            self.label,
+            self.bg_color.rgba()
+        )
+
+    def load_data(self, data):
+        self.id = data[0]
+        self.setX(data[1])
+        self.setY(data[2])
+        self.width = data[3]
+        self.height = data[4]
+        self.member_nodes_id = None if data[5] is None else data[5].split(',')
+        self.label = data[6]
+        self.bg_color.setRgba(int(data[7]))
 
     def __init__(self, member_nodes_id=None, *args, **kwargs):
         super(GroupPicker, self).__init__(*args, **kwargs)

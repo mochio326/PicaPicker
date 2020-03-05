@@ -33,7 +33,6 @@ class View(QtWidgets.QGraphicsView):
         self._init_alignment_params()
         self.prev_pos = None
 
-        self._snap_guide = {'x': None, 'y': None}
 
     def drop_create_node(self):
         return None
@@ -49,7 +48,7 @@ class View(QtWidgets.QGraphicsView):
         def __add_group_picker(pos):
             picker = {_item.id for _item in self.scene().selectedItems() if isinstance(_item, Picker)}
             g = GroupPicker(member_nodes_id=picker)
-            self.picker_init(g)
+            self.scene().picker_init(g)
             g.setPos(pos)
             g.update()
 
@@ -81,22 +80,12 @@ class View(QtWidgets.QGraphicsView):
         return [_n for _n in _nodes if isinstance(_n, cls)]
 
     def add_node_on_center(self, node):
-        self.picker_init(node)
+        self.scene().picker_init(node)
         node.setPos(self.get_view_center_pos())
         node.update()
 
     def get_view_center_pos(self):
         return self.mapToScene(self.width() / 2, self.height() / 2)
-
-    def del_node_snapping_guide(self, type):
-        if self._snap_guide[type] is not None:
-            self.scene().remove_item(self._snap_guide[type])
-            self._snap_guide[type] = None
-
-    def show_node_snapping_guide(self, pos_a, pos_b, type):
-        self.del_node_snapping_guide(type)
-        self._snap_guide[type] = Line(pos_a, pos_b)
-        self.scene().add_item(self._snap_guide[type])
 
     def _init_alignment_params(self):
         self.alignment_start_pos = None
@@ -142,17 +131,9 @@ class View(QtWidgets.QGraphicsView):
         if self.drop_node is None:
             return
         for _n in self.drop_node:
-            self.picker_init(_n, 0.5)
+            self.scene().picker_init(_n, 0.5)
         self.update()
         event.setAccepted(True)
-
-    def picker_init(self, picker_instance, opacity=None):
-        # picker作った際に必要な初期設定を行っとく
-        self.scene().add_item(picker_instance)
-        if opacity is not None:
-            picker_instance.setOpacity(opacity)
-        picker_instance.node_snapping.connect(self.show_node_snapping_guide)
-        picker_instance.node_snapped.connect(self.del_node_snapping_guide)
 
     def pickers_placement(self, pickers, pos_origin, opacity=None):
         # 複数のpickerノードを横一列にいい感じに配置する

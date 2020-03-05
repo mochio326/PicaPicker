@@ -13,8 +13,8 @@ class MenuBar(QtWidgets.QMenuBar):
         _m_file = self.addMenu('File')
         _m_file.setTearOffEnabled(True)
         _m_file.setWindowTitle('File')
-        exit = QtWidgets.QAction('Exit', self)
-        _m_file.addAction(exit)
+        _m_file.addAction('Save', self.scene.save)
+        _m_file.addAction('Load', self.scene.load)
 
         _pick = self.addMenu('Picker')
         _pick.setTearOffEnabled(True)
