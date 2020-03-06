@@ -173,7 +173,7 @@ class Node(QtWidgets.QGraphicsObject):
         _y_candidate = {}
 
         for _n in self.view.get_nodes((GroupPicker, Picker), True):
-            if self == _n:
+            if self == _n or _n.isSelected() is True:
                 continue
             _x_deff = abs(_n.center.x() - self.center.x())
             _y_deff = abs(_n.center.y() - self.center.y())
