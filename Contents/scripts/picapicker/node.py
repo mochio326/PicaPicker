@@ -293,7 +293,7 @@ class GroupPicker(Node):
         self.setY(data[2])
         self.width = data[3]
         self.height = data[4]
-        self.member_nodes_id = None if data[5] is None else data[5].split(',')
+        self.member_nodes_id = None if data[5] is None else set(data[5].split(','))
         self.label = data[6]
         self.bg_color.setRgba(int(data[7]))
 

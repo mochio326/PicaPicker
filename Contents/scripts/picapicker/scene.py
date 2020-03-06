@@ -3,7 +3,76 @@ from .vendor.Qt import QtCore, QtGui, QtWidgets
 from .node import Picker, BgNode, GroupPicker
 from .line import Line
 import sqlite3
+from collections import OrderedDict
 
+
+class SaveData(object):
+    PICKER_TABLE_DATA = (('id', 'text PRIMARY KEY'),
+                         ('x', 'real'),
+                         ('y', 'real'),
+                         ('width', 'integer'),
+                         ('height', 'integer'),
+                         ('node_name', 'text'),
+                         ('label', 'text'),
+                         ('bg_color', 'text')
+                         )
+    GROUP_PICKER_TABLE_DATA = (('id', 'text PRIMARY KEY'),
+                               ('x', 'real'),
+                               ('y', 'real'),
+                               ('width', 'integer'),
+                               ('height', 'integer'),
+                               ('member_nodes_id', 'text'),
+                               ('label', 'text'),
+                               ('bg_color', 'text')
+                               )
+
+    def __init__(self, scene):
+        # r'c:\temp\sample3.picap'
+        self.scene = scene
+
+    def table_is_exists(self, cursor, tebel_name):
+        cursor.execute("""
+            SELECT COUNT(*) FROM sqlite_master 
+            WHERE TYPE='table' AND name='{0}'
+            """.format(tebel_name))
+        if cursor.fetchone()[0] == 0:
+            return False
+        return True
+
+    def load(self, file_path):
+        for _i in self.scene.items():
+            self.scene.remove_item(_i)
+        conn = sqlite3.connect(file_path)
+        cursor = conn.cursor()
+        self._create_picker(cursor, 'picker', Picker)
+        self._create_picker(cursor, 'group_picker', GroupPicker)
+        conn.close()
+
+    def _create_picker(self, cursor, table_name, picker_cls):
+        if not self.table_is_exists(cursor, table_name):
+            return
+        for row in cursor.execute('select * from {0}'.format(table_name)):
+            _n = picker_cls()
+            self.scene.picker_init(_n, 1)
+            _n.load_data(row)
+            _n.update()
+
+    def _create_table(self, cursor, table_name, table_format, cls):
+        _table_format_str = ', '.join([" ".join(map(str, _f)) for _f in table_format])
+        _table_insert_value_format = ','.join(['?' for _ in table_format])
+        cursor.execute('DROP TABLE IF EXISTS {0}'.format(table_name))
+        cursor.execute('CREATE TABLE {0}({1})'.format(table_name, _table_format_str))
+        _data = [_n.get_save_data() for _n in self.scene.items() if isinstance(_n, cls)]
+        cursor.executemany('insert into {0} values ({1})'.format(table_name, _table_insert_value_format), _data)
+
+    def save(self, file_path):
+        conn = sqlite3.connect(file_path)
+        conn.text_factory = str
+        cursor = conn.cursor()
+        self._create_table(cursor, 'picker', self.PICKER_TABLE_DATA, Picker)
+        self._create_table(cursor, 'group_picker', self.GROUP_PICKER_TABLE_DATA, GroupPicker)
+        conn.commit()
+        conn.close()
 
 class Scene(QtWidgets.QGraphicsScene):
     def __init__(self):
@@ -25,53 +94,13 @@ class Scene(QtWidgets.QGraphicsScene):
         # 大量のitemが追加された際にPySideがバグってしまう事があった
         self.add_items = []
 
-    def table_is_exists(self, cursor, tebel_name):
-        cursor.execute("""
-            SELECT COUNT(*) FROM sqlite_master 
-            WHERE TYPE='table' AND name='{0}'
-            """.format(tebel_name))
-        if cursor.fetchone()[0] == 0:
-            return False
-        return True
-
     def load(self):
-        for _i in self.items():
-            self.remove_item(_i)
-        conn = sqlite3.connect(r'c:\temp\sample3.picap')
-        cursor = conn.cursor()
-        for row in cursor.execute('select * from picker'):
-            _n = Picker()
-            self.picker_init(_n, 1)
-            _n.load_data(row)
-            _n.update()
-        if self.table_is_exists(cursor, 'group_picker'):
-            for row in cursor.execute('select * from group_picker'):
-                _n = GroupPicker()
-                self.picker_init(_n, 1)
-                _n.load_data(row)
-                _n.update()
-        conn.close()
+        _sd = SaveData(self)
+        _sd.load(r'c:\temp\sample3.picap')
 
     def save(self):
-        conn = sqlite3.connect(r'c:\temp\sample3.picap')
-        conn.text_factory = str
-        cursor = conn.cursor()
-
-        cursor.execute('DROP TABLE IF EXISTS picker')
-        cursor.execute(
-            'CREATE TABLE picker(id text PRIMARY KEY, x real, y real, width integer, height integer, node_name text, label text, bg_color text)')
-        _data = [_n.get_save_data() for _n in self.items() if isinstance(_n, Picker)]
-        cursor.executemany("insert into picker values (?,?,?,?,?,?,?,?)", _data)
-
-        cursor.execute('DROP TABLE IF EXISTS group_picker')
-        cursor.execute(
-            'CREATE TABLE group_picker(id text PRIMARY KEY, x real, y real, width integer, height integer, member_nodes_id text, label text, bg_color text)')
-        _data = [_n.get_save_data() for _n in self.items() if isinstance(_n, GroupPicker)]
-        cursor.executemany("insert into group_picker values (?,?,?,?,?,?,?,?)", _data)
-
-
-        conn.commit()
-        conn.close()
+        _sd = SaveData(self)
+        _sd.save(r'c:\temp\sample3.picap')
 
     def del_node_snapping_guide(self, type):
         if self._snap_guide[type] is not None:
@@ -90,7 +119,6 @@ class Scene(QtWidgets.QGraphicsScene):
             picker_instance.setOpacity(opacity)
         picker_instance.node_snapping.connect(self.show_node_snapping_guide)
         picker_instance.node_snapped.connect(self.del_node_snapping_guide)
-
 
     def node_snap_to_grid(self, node):
         if not self.snap_to_grid_flag:
