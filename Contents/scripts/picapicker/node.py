@@ -204,6 +204,7 @@ class Picker(Node):
             self.id,
             self.x(),
             self.y(),
+            self.zValue(),
             self.width,
             self.height,
             self.node_name,
@@ -212,14 +213,15 @@ class Picker(Node):
         )
 
     def load_data(self, data):
-        self.id = data[0]
-        self.setX(data[1])
-        self.setY(data[2])
-        self.width = data[3]
-        self.height = data[4]
-        self.node_name = data[5]
-        self.label = data[6]
-        self.bg_color.setRgba(int(data[7]))
+        self.id = data.value(0)
+        self.setX(data.value(1))
+        self.setY(data.value(2))
+        self.setZValue(data.value(3))
+        self.width = data.value(4)
+        self.height = data.value(5)
+        self.node_name = data.value(6)
+        self.label = data.value(7)
+        self.bg_color.setRgba(int(data.value(8)))
 
     def __init__(self, node_name='', *args, **kwargs):
         super(Picker, self).__init__(*args, **kwargs)
@@ -280,6 +282,7 @@ class GroupPicker(Node):
             self.id,
             self.x(),
             self.y(),
+            self.zValue(),
             self.width,
             self.height,
             None if self.member_nodes_id is None else ','.join(self.member_nodes_id),
@@ -288,14 +291,15 @@ class GroupPicker(Node):
         )
 
     def load_data(self, data):
-        self.id = data[0]
-        self.setX(data[1])
-        self.setY(data[2])
-        self.width = data[3]
-        self.height = data[4]
-        self.member_nodes_id = None if data[5] is None else set(data[5].split(','))
-        self.label = data[6]
-        self.bg_color.setRgba(int(data[7]))
+        self.id = data.value(0)
+        self.setX(data.value(1))
+        self.setY(data.value(2))
+        self.setZValue(data.value(3))
+        self.width = data.value(4)
+        self.height = data.value(5)
+        self.member_nodes_id = None if data.value(6) is None else set(data.value(6).split(','))
+        self.label = data.value(7)
+        self.bg_color.setRgba(int(data.value(8)))
 
     def __init__(self, member_nodes_id=None, *args, **kwargs):
         super(GroupPicker, self).__init__(*args, **kwargs)
@@ -325,18 +329,46 @@ class GroupPicker(Node):
 
 class BgNode(Node):
 
+    def get_save_data(self):
+        barr = QtCore.QByteArray()
+        buff = QtCore.QBuffer(barr)
+        buff.open(QtCore.QIODevice.WriteOnly)
+        self.image.save(buff, "PNG")
+
+        return (
+            self.id,
+            self.x(),
+            self.y(),
+            self.zValue(),
+            self.width,
+            self.height,
+            barr
+        )
+
+    def load_data(self, data):
+        self.id = data.value(0)
+        self.setX(data.value(1))
+        self.setY(data.value(2))
+        self.setZValue(data.value(3))
+        self.width = data.value(4)
+        self.height = data.value(5)
+        self.image = QtGui.QPixmap()
+        self.image.loadFromData(data.value(6))
+
     def __init__(self, url=None, image=None):
         super(BgNode, self).__init__()
-        self.ulr = url
-        if url is not None:
-            self.image = QtGui.QImage(self.ulr)
-        if image is not None:
-            self.image = QtGui.QImage(image)
-        self.width = self.image.width()
-        self.height = self.image.height()
+        self.image = None
         self.setAcceptHoverEvents(False)
         self.movable = True
-        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+
+        if url is not None:
+            self.image = QtGui.QImage(url)
+        if image is not None:
+            self.image = QtGui.QImage(image)
+        if self.image is not None:
+            self.image = QtGui.QPixmap.fromImage(self.image)
+            self.width = self.image.width()
+            self.height = self.image.height()
 
     def search_snap_node(self):
         return None, None
@@ -365,7 +397,7 @@ class BgNode(Node):
         super(BgNode, self).mouseReleaseEvent(event)
 
     def paint(self, painter, option, widget):
-        painter.drawImage(0, 0, self.image)
+        painter.drawPixmap(0, 0, self.image)
         if self.isSelected():
             painter.setPen(self.sel_pen)
             painter.drawRoundedRect(self.rect, 2.0, 2.0)

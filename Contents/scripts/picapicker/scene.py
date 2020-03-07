@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-from .vendor.Qt import QtCore, QtGui, QtWidgets
+from .vendor.Qt import QtCore, QtGui, QtWidgets, QtSql
 from .node import Picker, BgNode, GroupPicker
 from .line import Line
-import sqlite3
-from collections import OrderedDict
 
 
 class SaveData(object):
     PICKER_TABLE_DATA = (('id', 'text PRIMARY KEY'),
                          ('x', 'real'),
                          ('y', 'real'),
+                         ('z', 'real'),
                          ('width', 'integer'),
                          ('height', 'integer'),
                          ('node_name', 'text'),
@@ -19,15 +18,23 @@ class SaveData(object):
     GROUP_PICKER_TABLE_DATA = (('id', 'text PRIMARY KEY'),
                                ('x', 'real'),
                                ('y', 'real'),
+                               ('z', 'real'),
                                ('width', 'integer'),
                                ('height', 'integer'),
                                ('member_nodes_id', 'text'),
                                ('label', 'text'),
                                ('bg_color', 'text')
                                )
+    BG_IMAGE_TABLE_DATA = (('id', 'text PRIMARY KEY'),
+                           ('x', 'real'),
+                           ('y', 'real'),
+                           ('z', 'real'),
+                           ('width', 'integer'),
+                           ('height', 'integer'),
+                           ('data', 'blob')
+                           )
 
     def __init__(self, scene):
-        # r'c:\temp\sample3.picap'
         self.scene = scene
 
     def table_is_exists(self, cursor, tebel_name):
@@ -42,37 +49,68 @@ class SaveData(object):
     def load(self, file_path):
         for _i in self.scene.items():
             self.scene.remove_item(_i)
-        conn = sqlite3.connect(file_path)
-        cursor = conn.cursor()
-        self._create_picker(cursor, 'picker', Picker)
-        self._create_picker(cursor, 'group_picker', GroupPicker)
-        conn.close()
 
-    def _create_picker(self, cursor, table_name, picker_cls):
-        if not self.table_is_exists(cursor, table_name):
+        db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
+        db.setDatabaseName(file_path)
+        db.open()
+        query = QtSql.QSqlQuery(db)
+        self._create_picker(query, 'picker', Picker)
+        self._create_picker(query, 'group_picker', GroupPicker)
+        self._create_bg_image(query, 'bg_image')
+        db.close()
+
+    def _create_picker(self, query, table_name, picker_cls):
+        query.exec_('SELECT * FROM {0}'.format(table_name))
+        if not query.isActive():
             return
-        for row in cursor.execute('select * from {0}'.format(table_name)):
+
+        query.first()
+        while query.isValid():
             _n = picker_cls()
             self.scene.picker_init(_n, 1)
-            _n.load_data(row)
-            _n.update()
+            _n.load_data(query)
+            query.next()
 
-    def _create_table(self, cursor, table_name, table_format, cls):
+    def _create_bg_image(self, query, table_name):
+        query.exec_('SELECT * FROM {0}'.format(table_name))
+        if not query.isActive():
+            return
+
+        query.first()
+        while query.isValid():
+            _n = BgNode()
+            self.scene.add_item(_n)
+            _n.load_data(query)
+            _n.update()
+            query.next()
+
+    def _create_table(self, query, table_name, table_format, cls):
         _table_format_str = ', '.join([" ".join(map(str, _f)) for _f in table_format])
         _table_insert_value_format = ','.join(['?' for _ in table_format])
-        cursor.execute('DROP TABLE IF EXISTS {0}'.format(table_name))
-        cursor.execute('CREATE TABLE {0}({1})'.format(table_name, _table_format_str))
-        _data = [_n.get_save_data() for _n in self.scene.items() if isinstance(_n, cls)]
-        cursor.executemany('insert into {0} values ({1})'.format(table_name, _table_insert_value_format), _data)
+
+        query.exec_('DROP TABLE IF EXISTS {0}'.format(table_name))
+        query.exec_('CREATE TABLE {0}({1})'.format(table_name, _table_format_str))
+        query.prepare('insert into {0} values ({1})'.format(table_name, _table_insert_value_format))
+        query.exec_()
+
+        for _n in self.scene.items():
+            if not isinstance(_n, cls):
+                continue
+            _data = _n.get_save_data()
+            for i, v in enumerate(_data):
+                query.bindValue(i, v)
+            query.exec_()
 
     def save(self, file_path):
-        conn = sqlite3.connect(file_path)
-        conn.text_factory = str
-        cursor = conn.cursor()
-        self._create_table(cursor, 'picker', self.PICKER_TABLE_DATA, Picker)
-        self._create_table(cursor, 'group_picker', self.GROUP_PICKER_TABLE_DATA, GroupPicker)
-        conn.commit()
-        conn.close()
+        db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
+        db.setDatabaseName(file_path)
+        db.open()
+        query = QtSql.QSqlQuery(db)
+        self._create_table(query, 'picker', self.PICKER_TABLE_DATA, Picker)
+        self._create_table(query, 'group_picker', self.GROUP_PICKER_TABLE_DATA, GroupPicker)
+        self._create_table(query, 'bg_image', self.BG_IMAGE_TABLE_DATA, BgNode)
+        db.close()
+
 
 class Scene(QtWidgets.QGraphicsScene):
     def __init__(self):
@@ -96,11 +134,11 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def load(self):
         _sd = SaveData(self)
-        _sd.load(r'c:\temp\sample3.picap')
+        _sd.load(r'c:\temp\sample4.picap')
 
     def save(self):
         _sd = SaveData(self)
-        _sd.save(r'c:\temp\sample3.picap')
+        _sd.save(r'c:\temp\sample4.picap')
 
     def del_node_snapping_guide(self, type):
         if self._snap_guide[type] is not None:
