@@ -37,18 +37,8 @@ class SaveData(object):
     def __init__(self, scene):
         self.scene = scene
 
-    def table_is_exists(self, cursor, tebel_name):
-        cursor.execute("""
-            SELECT COUNT(*) FROM sqlite_master 
-            WHERE TYPE='table' AND name='{0}'
-            """.format(tebel_name))
-        if cursor.fetchone()[0] == 0:
-            return False
-        return True
-
     def load(self, file_path):
-        for _i in self.scene.items():
-            self.scene.remove_item(_i)
+        self.scene.clear()
 
         db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
         db.setDatabaseName(file_path)
@@ -132,13 +122,17 @@ class Scene(QtWidgets.QGraphicsScene):
         # 大量のitemが追加された際にPySideがバグってしまう事があった
         self.add_items = []
 
-    def load(self):
+    def load(self, file_path=None):
         _sd = SaveData(self)
-        _sd.load(r'c:\temp\sample4.picap')
+        if file_path is None:
+            file_path = r'c:\temp\sample4.picap'
+        _sd.load(file_path)
 
-    def save(self):
+    def save(self, file_path=None):
         _sd = SaveData(self)
-        _sd.save(r'c:\temp\sample4.picap')
+        if file_path is None:
+            file_path = r'c:\temp\sample4.picap'
+        _sd.save(file_path)
 
     def del_node_snapping_guide(self, type):
         if self._snap_guide[type] is not None:
@@ -281,7 +275,8 @@ class Scene(QtWidgets.QGraphicsScene):
             self.removeItem(_w)
 
     def clear(self):
-        self.clear()
+        for _i in self.items():
+            self.remove_item(_i)
         self.add_items = []
 
 # -----------------------------------------------------------------------------

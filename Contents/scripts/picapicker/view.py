@@ -3,7 +3,7 @@ from .vendor.Qt import QtCore, QtGui, QtWidgets
 from .node import BgNode, GroupPicker, Picker
 from .line import Line
 import re
-
+import os
 
 class View(QtWidgets.QGraphicsView):
 
@@ -120,7 +120,9 @@ class View(QtWidgets.QGraphicsView):
                     _path = re.sub("^/", "", url.path())
                 else:  # PySide2
                     _path = re.sub("^file:///", "", url.url())
-                self.drop_node.append(BgNode(_path))
+                _, ext = os.path.splitext(_path)
+                if ext != '.picap':
+                    self.drop_node.append(BgNode(_path))
         elif event.mimeData().hasText() and not event.mimeData().hasUrls():
             text = event.mimeData().text()
             text = text.split('\n')
@@ -149,6 +151,15 @@ class View(QtWidgets.QGraphicsView):
         pos = self.mapToScene(event.pos())
         self.pickers_placement(self.drop_node, pos, 1)
         self.drop_node = None
+
+        for url in event.mimeData().urls():
+            if hasattr(url, 'path'):  # PySide
+                _path = re.sub("^/", "", url.path())
+            else:  # PySide2
+                _path = re.sub("^file:///", "", url.url())
+            _, ext = os.path.splitext(_path)
+            if ext == '.picap':
+                self.scene().load(_path)
 
     def wheelEvent(self, event):
         """
