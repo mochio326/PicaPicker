@@ -125,13 +125,13 @@ class Scene(QtWidgets.QGraphicsScene):
     def load(self, file_path=None):
         _sd = SaveData(self)
         if file_path is None:
-            file_path = r'c:\temp\sample4.picap'
+            file_path = r'C:\temp\picaPicker\sample.picap'
         _sd.load(file_path)
 
     def save(self, file_path=None):
         _sd = SaveData(self)
         if file_path is None:
-            file_path = r'c:\temp\sample4.picap'
+            file_path = r'C:\temp\picaPicker\sample.picap'
         _sd.save(file_path)
 
     def del_node_snapping_guide(self, type):
@@ -169,7 +169,6 @@ class Scene(QtWidgets.QGraphicsScene):
         for _item in self.selectedItems():
             if isinstance(_item, GroupPicker) and not _item.drag:
                 for _n in _item.get_member_nodes():
-                    # _n.setSelected(True)
                     _n.group_select = True
                     _n.update()
                     _target_dcc_nodes.extend(_n.get_dcc_node())
@@ -184,7 +183,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def enable_edit_change(self):
         for _i in self.items():
-            if isinstance(_i, Picker):
+            if isinstance(_i, (Picker, GroupPicker)):
                 _i.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, self.enable_edit)
             elif isinstance(_i, BgNode):
                 _flg = self.enable_edit and not self.lock_bg_image

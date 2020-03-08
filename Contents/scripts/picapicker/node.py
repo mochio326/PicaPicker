@@ -48,6 +48,8 @@ class Node(QtWidgets.QGraphicsObject):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.movable = True
+        self.drag_node_origin = None
+        self.origin_pos_dict = {}
 
         # Brush.
         self.brush = QtGui.QBrush()
@@ -92,8 +94,9 @@ class Node(QtWidgets.QGraphicsObject):
             self.drag = True
             # 見やすくするために最前面表示
             # self.setZValue(100.0)
-            self.drag_event_origin = self.mapToScene(event.pos())
             self.drag_node_origin = self.pos()
+            for _n in self.scene().selectedItems():
+                self.origin_pos_dict[_n.id] = _n.pos()
 
         super(Node, self).mousePressEvent(event)
 
@@ -122,14 +125,13 @@ class Node(QtWidgets.QGraphicsObject):
                 if y_node is not None:
                     self.node_snapping.emit(self.center, y_node.center, 'y')
 
-                # 複数ノードをドラッグしていた場合にactiveなノードと同じ差分を考慮する
-                # ことで、ドラッグノード同士の位置関係を維持する
-                event_deff = self.drag_event_origin - self.mapToScene(event.pos())
+                # 複数ノードをドラッグしていた場合にメインノードと同じ移動を入れる
+                # スナップ補正された場合にデフォの移動機能だとノード同士の間隔がズレる為
                 node_deff = self.drag_node_origin - self.pos()
                 for _n in self.scene().selectedItems():
                     if _n == self:
                         continue
-                    _n.setPos(_n.pos() + event_deff - node_deff)
+                    _n.setPos(self.origin_pos_dict[_n.id] - node_deff)
 
             for n in self.scene().selectedItems():
                 self.scene().node_snap_to_grid(n)
@@ -151,6 +153,8 @@ class Node(QtWidgets.QGraphicsObject):
 
             self.node_snapped.emit('x')
             self.node_snapped.emit('y')
+
+            self.origin_pos_dict = {}
 
     def hoverEnterEvent(self, event):
         QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), self._tooltip)
@@ -258,13 +262,13 @@ class Picker(Node):
     def mouseMoveEvent(self, event):
         super(Picker, self).mouseMoveEvent(event)
 
-        if event.buttons() == QtCore.Qt.MiddleButton:
-            mimeData = QtCore.QMimeData()
-            mimeData.setData("text/picknode", self.id)
-            drag = QtGui.QDrag(self)
-            drag.setMimeData(mimeData)
-            drag.setHotSpot(QtCore.QPoint(event.pos().x() - self.pos().x(), event.pos().y() - self.pos().y()))
-            dropAction = drag.exec_(QtCore.Qt.MoveAction)
+        # if event.buttons() == QtCore.Qt.MiddleButton:
+        #     mimeData = QtCore.QMimeData()
+        #     mimeData.setData("text/picknode", self.id)
+        #     drag = QtGui.QDrag(self)
+        #     drag.setMimeData(mimeData)
+        #     drag.setHotSpot(QtCore.QPoint(event.pos().x() - self.pos().x(), event.pos().y() - self.pos().y()))
+        #     dropAction = drag.exec_(QtCore.Qt.MoveAction)
 
     def get_dcc_node(self):
         """
@@ -360,6 +364,8 @@ class BgNode(Node):
         self.image = None
         self.setAcceptHoverEvents(False)
         self.movable = True
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
 
         if url is not None:
             self.image = QtGui.QImage(url)
