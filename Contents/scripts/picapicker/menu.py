@@ -1,9 +1,15 @@
 # # -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from .node import Picker, GroupPicker
-
+import os
 
 class MenuBar(QtWidgets.QMenuBar):
+
+    def __add_separator(self, menu, label):
+        if hasattr(menu, 'addSection'):
+            menu.addSection(label)
+        else:
+            menu.addSeparator()
 
     def __init__(self, parent):
         super(MenuBar, self).__init__()
@@ -25,12 +31,12 @@ class MenuBar(QtWidgets.QMenuBar):
         _pick.addAction('Color', self.node_change_color)
         _pick.addAction('Size', self.picker_size)
         _pick.addAction('Set WireFrame Color', self.set_wire_frame_color)
-        _pick.addSection('Add')
+        self.__add_separator(_pick, 'Add')
         _pick.addAction('Picker', lambda: self.view.create_nods_from_dcc_selection(self.view.get_view_center_pos()))
         _pick.addAction('GroupPicker', lambda: self.view.add_node_on_center(
             GroupPicker(
                 member_nodes_id={_item.id for _item in self.scene.selectedItems() if isinstance(_item, Picker)})))
-        _pick.addSection('Edit Group')
+        self.__add_separator(_pick, 'Edit Group')
         _pick.addAction('Add to Group', self.scene.add_to_group)
         _pick.addAction('Remove from Group', self.scene.remove_from_group)
 
@@ -54,7 +60,8 @@ class MenuBar(QtWidgets.QMenuBar):
         _bgg.setWindowTitle('Setting')
         self._draw_bg_grid_action = self._create_checkbox(_bgg, 'DrawGrid', self.scene.draw_bg_grid,
                                                           self._draw_bg_grid_checked)
-        _bgg.addSection('Snap')
+        self.__add_separator(_bgg, 'Snap')
+
         self._snap_to_picker_action = self._create_checkbox(_bgg, 'Snap to Picker', self.scene.snap_to_node_flag,
                                                             self._snap_to_picker_checked)
         self._snap_to_grid_action = self._create_checkbox(_bgg, 'Snap to Grid', self.scene.snap_to_grid_flag,
@@ -161,3 +168,85 @@ class CanvasSizeInputDialog(QtWidgets.QDialog):
         result = dialog.exec_()  # ダイアログを開く
         w, h = dialog.canvas_size()  # キャンバスサイズを取得
         return (w, h, result == QtWidgets.QDialog.Accepted)
+
+
+class EditToolWidget(QtWidgets.QWidget):
+    def __init__(self, parent):
+        super(EditToolWidget, self).__init__()
+        _self_dir = os.path.dirname(os.path.abspath(__file__))
+
+        self.view = parent.view
+        self.scene = parent.scene
+
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+
+        self.setWindowTitle('EditToolWidget')
+
+        self.resize(800, 40)
+
+        self.hbox = QtWidgets.QHBoxLayout()
+        self.hbox.setSpacing(2)
+        self.hbox.setContentsMargins(2, 2, 2, 2)
+        self.setLayout(self.hbox)
+
+        self.ns_button = QtWidgets.QPushButton()
+        # self.ns_button.pressed.connect(self._reload_name_space_list)
+
+        size = QtCore.QSize(25, 25)
+
+        pixmap = QtGui.QPixmap('{0}/icons/select.png'.format(_self_dir))
+        button_icon = QtGui.QIcon(pixmap)
+        self.ns_button.setIcon(button_icon)
+        self.ns_button.setIconSize(size)
+        self.ns_button.setFixedSize(size)
+        self.ns_button.setToolTip('Reload')
+        self.hbox.addWidget(self.ns_button)
+
+
+        self.ns_button = QtWidgets.QPushButton()
+        pixmap = QtGui.QPixmap('{0}/icons/bgimage.png'.format(_self_dir))
+        button_icon = QtGui.QIcon(pixmap)
+        self.ns_button.setIcon(button_icon)
+        self.ns_button.setIconSize(size)
+        self.ns_button.setFixedSize(size)
+        self.ns_button.setToolTip('Reload')
+        self.hbox.addWidget(self.ns_button)
+
+        self.line = QtWidgets.QFrame()
+        self.line.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Sunken)
+        self.hbox.addWidget(self.line)
+
+        self.ns_button = QtWidgets.QPushButton()
+        pixmap = QtGui.QPixmap('{0}/icons/position.png'.format(_self_dir))
+        button_icon = QtGui.QIcon(pixmap)
+        self.ns_button.setIcon(button_icon)
+        self.ns_button.setIconSize(size)
+        self.ns_button.setFixedSize(size)
+        self.ns_button.setToolTip('Reload')
+        self.hbox.addWidget(self.ns_button)
+
+        self.line = QtWidgets.QFrame()
+        self.line.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Sunken)
+        self.hbox.addWidget(self.line)
+
+        self.ns_button = QtWidgets.QPushButton()
+        pixmap = QtGui.QPixmap('{0}/icons/plus.png'.format(_self_dir))
+        button_icon = QtGui.QIcon(pixmap)
+        self.ns_button.setIcon(button_icon)
+        self.ns_button.setIconSize(size)
+        self.ns_button.setFixedSize(size)
+        self.ns_button.setToolTip('Reload')
+        self.hbox.addWidget(self.ns_button)
+
+        self.ns_button = QtWidgets.QPushButton()
+        pixmap = QtGui.QPixmap('{0}/icons/minus.png'.format(_self_dir))
+        button_icon = QtGui.QIcon(pixmap)
+        self.ns_button.setIcon(button_icon)
+        self.ns_button.setIconSize(size)
+        self.ns_button.setFixedSize(size)
+        self.ns_button.setToolTip('Reload')
+        self.hbox.addWidget(self.ns_button)
+
+
+        self.hbox.addStretch(1)

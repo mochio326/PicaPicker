@@ -40,6 +40,12 @@ class View(QtWidgets.QGraphicsView):
     def _context_menu(self, event):
         cursor = QtGui.QCursor.pos()
 
+        def __add_separator(menu, label):
+            if hasattr(menu, 'addSection'):
+                menu.addSection(label)
+            else:
+                menu.addSeparator()
+
         def __enable_edit_checked():
             self.scene().enable_edit = _enable_edit_action.isChecked()
             self.scene().enable_edit_change()
@@ -63,7 +69,7 @@ class View(QtWidgets.QGraphicsView):
             _menu.exec_(cursor)
             return
 
-        _menu.addSection('Add')
+        __add_separator(_menu, 'Add')
         _menu.addAction('Picker', lambda: self.create_nods_from_dcc_selection(self.mapToScene(event)))
         _menu.addAction('GroupPicker', lambda: __add_group_picker(self.mapToScene(event)))
 

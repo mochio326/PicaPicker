@@ -2,13 +2,13 @@
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from .view import View
 from .scene import Scene
-from .menu import MenuBar
+from .menu import MenuBar, EditToolWidget
 from .node import Picker
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from maya.api import OpenMaya as om2
 from maya import cmds
 import re
-
+import os
 
 def get_short_name(search):
     search = re.sub(r'^.+:', '', str(search))
@@ -110,6 +110,7 @@ MenuBar.get_node_color = get_color
 class NameSpaceWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super(NameSpaceWidget, self).__init__()
+        _self_dir = os.path.dirname(os.path.abspath(__file__))
 
         self.view = parent.view
         self.scene = parent.scene
@@ -129,19 +130,35 @@ class NameSpaceWidget(QtWidgets.QWidget):
         self.hbox.addStretch(1)
 
         self.ns_combo = QtWidgets.QComboBox()
-        self.ns_combo.currentTextChanged.connect(self._change_name_space)
+        self.ns_combo.currentIndexChanged.connect(self._change_name_space)
         self.hbox.addWidget(self.ns_combo)
         self._reload_name_space_list()
 
-        self.ns_button = QtWidgets.QPushButton(u'🔁')
+        self.ns_button = QtWidgets.QPushButton()
         self.ns_button.pressed.connect(self._reload_name_space_list)
+
+        size = QtCore.QSize(20, 20)
+
+        pixmap = QtGui.QPixmap('{0}/icons/reload.png'.format(_self_dir))
+        button_icon = QtGui.QIcon(pixmap)
+        self.ns_button.setIcon(button_icon)
+        self.ns_button.setIconSize(size)
+        self.ns_button.setFixedSize(size)
+        self.ns_button.setToolTip('Reload')
         self.hbox.addWidget(self.ns_button)
+
 
         self.root_node_name = QtWidgets.QLabel('')
         self.hbox.addWidget(self.root_node_name)
 
-        self.root_button = QtWidgets.QPushButton('Get')
+        self.root_button = QtWidgets.QPushButton()
         self.root_button.pressed.connect(self._get_root_node)
+        pixmap = QtGui.QPixmap('{0}/icons/target.png'.format(_self_dir))
+        button_icon = QtGui.QIcon(pixmap)
+        self.root_button.setIcon(button_icon)
+        self.root_button.setIconSize(size)
+        self.root_button.setFixedSize(size)
+        self.root_button.setToolTip('Get Target')
         self.hbox.addWidget(self.root_button)
 
         self.hbox.addWidget(QtWidgets.QLabel(' | '))
@@ -223,9 +240,18 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.setLayout(self.vbox)
         self.vbox.addWidget(self.menu_bar)
 
+
+        # self.hbox = QtWidgets.QHBoxLayout()
+        # self.hbox.setSpacing(2)
+        # self.hbox.setContentsMargins(2, 2, 2, 2)
+        # self.vbox.addLayout(self.hbox)
+
+        self.edit_tool = EditToolWidget(self)
+        self.vbox.addWidget(self.edit_tool)
+        self.vbox.addWidget(self.view)
+
         self.vbox.addWidget(self.nsw)
 
-        self.vbox.addWidget(self.view)
 
     def menu_bar_visibility(self):
         if self.scene.enable_edit:
