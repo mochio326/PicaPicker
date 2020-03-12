@@ -103,12 +103,40 @@ class SaveData(object):
 
 
 class Scene(QtWidgets.QGraphicsScene):
+
+    @property
+    def is_bg_image_selectable(self):
+        return self._is_bg_image_selectable
+
+    @is_bg_image_selectable.setter
+    def is_bg_image_selectable(self, val):
+        self._is_bg_image_selectable = val
+        for _n in self.items():
+            if not isinstance(_n, BgNode):
+                continue
+            if not self._is_bg_image_selectable:
+                _n.setSelected(False)
+            _n.set_selectable_flag_from_scene()
+
+    @property
+    def is_node_movable(self):
+        return self._is_node_movable
+
+    @is_node_movable.setter
+    def is_node_movable(self, val):
+        self._is_node_movable = val
+        for _n in self.items():
+            _n.set_movable_flag_from_scene()
+
     def __init__(self):
         super(Scene, self).__init__()
         self.selectionChanged.connect(self.select_nodes)
         self.enable_edit = True
         self.lock_bg_image = False
         self.draw_bg_grid = True
+
+        self._is_bg_image_selectable = False
+        self._is_node_movable = False
 
         self.grid_width = 20
         self.grid_height = 20
@@ -265,6 +293,11 @@ class Scene(QtWidgets.QGraphicsScene):
             _shadow.setOffset(3, 3)
             _shadow.setColor(QtGui.QColor(10, 10, 10, 150))
             _w.setGraphicsEffect(_shadow)
+
+            if hasattr(_w, 'set_movable_flag_from_scene'):
+                _w.set_movable_flag_from_scene()
+            if hasattr(_w, 'set_selectable_flag_from_scene'):
+                _w.set_selectable_flag_from_scene()
 
     def remove_item(self, widget):
         if not isinstance(widget, list):

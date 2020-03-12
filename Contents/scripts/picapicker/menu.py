@@ -3,6 +3,7 @@ from .vendor.Qt import QtCore, QtGui, QtWidgets
 from .node import Picker, GroupPicker
 import os
 
+
 class MenuBar(QtWidgets.QMenuBar):
 
     def __add_separator(self, menu, label):
@@ -190,63 +191,55 @@ class EditToolWidget(QtWidgets.QWidget):
         self.hbox.setContentsMargins(2, 2, 2, 2)
         self.setLayout(self.hbox)
 
-        self.ns_button = QtWidgets.QPushButton()
-        # self.ns_button.pressed.connect(self._reload_name_space_list)
-
         size = QtCore.QSize(25, 25)
 
-        pixmap = QtGui.QPixmap('{0}/icons/select.png'.format(_self_dir))
-        button_icon = QtGui.QIcon(pixmap)
-        self.ns_button.setIcon(button_icon)
-        self.ns_button.setIconSize(size)
-        self.ns_button.setFixedSize(size)
-        self.ns_button.setToolTip('Reload')
-        self.hbox.addWidget(self.ns_button)
+        self.select_mode = False
 
+        def _toggle_change(value_name, button):
+            setattr(self.scene, value_name, not getattr(self.scene, value_name))
+            if getattr(self.scene, value_name):
+                button.setStyleSheet('background-color: rgb(240,131,0);')
+            else:
+                button.setStyleSheet('background-color: rgb(93,93,93);')
 
-        self.ns_button = QtWidgets.QPushButton()
-        pixmap = QtGui.QPixmap('{0}/icons/bgimage.png'.format(_self_dir))
-        button_icon = QtGui.QIcon(pixmap)
-        self.ns_button.setIcon(button_icon)
-        self.ns_button.setIconSize(size)
-        self.ns_button.setFixedSize(size)
-        self.ns_button.setToolTip('Reload')
-        self.hbox.addWidget(self.ns_button)
+        def _create_toggle_button(icon_file, toggle_value_name):
+            _btn = QtWidgets.QPushButton()
+            _btn.pressed.connect(lambda: _toggle_change(toggle_value_name, _btn))
+            pixmap = QtGui.QPixmap('{0}/icons/{1}.png'.format(_self_dir, icon_file))
+            _icon = QtGui.QIcon(pixmap)
+            _btn.setIcon(_icon)
+            _btn.setIconSize(size)
+            _btn.setFixedSize(size)
+            _btn.setToolTip(icon_file)
+            self.hbox.addWidget(_btn)
+            return _btn
 
-        self.line = QtWidgets.QFrame()
-        self.line.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Sunken)
-        self.hbox.addWidget(self.line)
+        # self.select_button = _create_toggle_button('select', 'select_mode')
 
-        self.ns_button = QtWidgets.QPushButton()
-        pixmap = QtGui.QPixmap('{0}/icons/position.png'.format(_self_dir))
-        button_icon = QtGui.QIcon(pixmap)
-        self.ns_button.setIcon(button_icon)
-        self.ns_button.setIconSize(size)
-        self.ns_button.setFixedSize(size)
-        self.ns_button.setToolTip('Reload')
-        self.hbox.addWidget(self.ns_button)
+        self.bgimage_button = _create_toggle_button('bgimage', 'is_bg_image_selectable')
 
-        self.line = QtWidgets.QFrame()
-        self.line.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Sunken)
-        self.hbox.addWidget(self.line)
+        self.hbox.addSpacing(5)
 
-        self.ns_button = QtWidgets.QPushButton()
+        self.position_button = _create_toggle_button('position', 'is_node_movable')
+
+        self.hbox.addSpacing(5)
+
+        self.plus_button = QtWidgets.QPushButton()
         pixmap = QtGui.QPixmap('{0}/icons/plus.png'.format(_self_dir))
         button_icon = QtGui.QIcon(pixmap)
-        self.ns_button.setIcon(button_icon)
-        self.ns_button.setIconSize(size)
-        self.ns_button.setFixedSize(size)
-        self.ns_button.setToolTip('Reload')
-        self.hbox.addWidget(self.ns_button)
+        self.plus_button.setIcon(button_icon)
+        self.plus_button.setIconSize(size)
+        self.plus_button.setFixedSize(size)
+        self.plus_button.setToolTip('Reload')
+        self.hbox.addWidget(self.plus_button)
 
-        self.ns_button = QtWidgets.QPushButton()
+        self.minus_button = QtWidgets.QPushButton()
         pixmap = QtGui.QPixmap('{0}/icons/minus.png'.format(_self_dir))
         button_icon = QtGui.QIcon(pixmap)
-        self.ns_button.setIcon(button_icon)
-        self.ns_button.setIconSize(size)
-        self.ns_button.setFixedSize(size)
-        self.ns_button.setToolTip('Reload')
-        self.hbox.addWidget(self.ns_button)
-
+        self.minus_button.setIcon(button_icon)
+        self.minus_button.setIconSize(size)
+        self.minus_button.setFixedSize(size)
+        self.minus_button.setToolTip('Reload')
+        self.hbox.addWidget(self.minus_button)
 
         self.hbox.addStretch(1)

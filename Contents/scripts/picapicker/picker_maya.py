@@ -10,6 +10,7 @@ from maya import cmds
 import re
 import os
 
+
 def get_short_name(search):
     search = re.sub(r'^.+:', '', str(search))
     if ('|' in search) is True:
@@ -147,7 +148,6 @@ class NameSpaceWidget(QtWidgets.QWidget):
         self.ns_button.setToolTip('Reload')
         self.hbox.addWidget(self.ns_button)
 
-
         self.root_node_name = QtWidgets.QLabel('')
         self.hbox.addWidget(self.root_node_name)
 
@@ -240,24 +240,28 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.setLayout(self.vbox)
         self.vbox.addWidget(self.menu_bar)
 
-
-        # self.hbox = QtWidgets.QHBoxLayout()
-        # self.hbox.setSpacing(2)
-        # self.hbox.setContentsMargins(2, 2, 2, 2)
-        # self.vbox.addLayout(self.hbox)
-
         self.edit_tool = EditToolWidget(self)
         self.vbox.addWidget(self.edit_tool)
         self.vbox.addWidget(self.view)
 
         self.vbox.addWidget(self.nsw)
 
-
     def menu_bar_visibility(self):
         if self.scene.enable_edit:
             self.menu_bar.show()
         else:
             self.menu_bar.hide()
+
+
+class Tab(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
+
+    def __init__(self):
+        super(Tab, self).__init__()
+        # メモリ管理的おまじない
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        self.setMovable(True)
+        self.setTabsClosable(True)
 
 
 '''
@@ -268,8 +272,11 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
 
 def main():
-    nodeWindow = PickerWidget()
-    nodeWindow.show()
+    # nodeWindow = Tab()
+    _w = PickerWidget()
+    # nodeWindow.insertTab(0, PickerWidget(), 'aaaaaaaa')
+    # nodeWindow.insertTab(0, PickerWidget(), 'bbbbb')
+    _w.show()
 
 
 if __name__ == '__main__':

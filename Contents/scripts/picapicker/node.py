@@ -45,7 +45,7 @@ class Node(QtWidgets.QGraphicsObject):
         self._tooltip = label
 
         self.setAcceptHoverEvents(True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.movable = True
         self.drag_node_origin = None
@@ -65,6 +65,13 @@ class Node(QtWidgets.QGraphicsObject):
         self.sel_pen.setStyle(QtCore.Qt.SolidLine)
         self.sel_pen.setWidth(2)
         self.sel_pen.setColor(QtGui.QColor(0, 255, 255, 255))
+
+    def set_movable_flag_from_scene(self):
+        _flag = all([self.scene().enable_edit, self.scene().is_node_movable])
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, _flag)
+
+    def set_selectable_flag_from_scene(self):
+        pass
 
     def shape(self):
         path = QtGui.QPainterPath()
@@ -90,7 +97,7 @@ class Node(QtWidgets.QGraphicsObject):
         # painter.drawText(rect, QtCore.Qt.AlignCenter, self.label)
 
     def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton and event.modifiers() == QtCore.Qt.ControlModifier:
+        if event.button() == QtCore.Qt.LeftButton:
             self.drag = True
             # 見やすくするために最前面表示
             # self.setZValue(100.0)
@@ -364,8 +371,6 @@ class BgNode(Node):
         self.image = None
         self.setAcceptHoverEvents(False)
         self.movable = True
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
 
         if url is not None:
             self.image = QtGui.QImage(url)
@@ -376,6 +381,15 @@ class BgNode(Node):
             self.width = self.image.width()
             self.height = self.image.height()
 
+    def set_selectable_flag_from_scene(self):
+        _flag = all([self.scene().enable_edit, self.scene().is_bg_image_selectable])
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, _flag)
+        self.set_movable_flag_from_scene()
+
+    def set_movable_flag_from_scene(self):
+        _flag = all([self.scene().enable_edit, self.scene().is_node_movable, self.scene().is_bg_image_selectable])
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, _flag)
+
     def search_snap_node(self):
         return None, None
 
@@ -385,21 +399,21 @@ class BgNode(Node):
 
     def mousePressEvent(self, event):
         # ここで選択できなくしておかないと前面のpickerを矩形選択できない
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
-        if event.button() == QtCore.Qt.LeftButton and event.modifiers() == QtCore.Qt.ControlModifier:
-            # ロックされてない場合のみ一時的にフラグを有効にして編集できるようにする
-            if self.movable:
-                self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-                self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
-            self.drag = True
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        # if event.button() == QtCore.Qt.LeftButton and event.modifiers() == QtCore.Qt.ControlModifier:
+        #     # ロックされてない場合のみ一時的にフラグを有効にして編集できるようにする
+        #     if self.movable:
+        #         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        #         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+        # self.drag = True
         super(BgNode, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self.drag:
-            if self.movable:
-                # 削除のために選択状態は残しておく
-                self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
-                # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        # if self.drag:
+        # if self.movable:
+        # 削除のために選択状態は残しておく
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
         super(BgNode, self).mouseReleaseEvent(event)
 
     def paint(self, painter, option, widget):
