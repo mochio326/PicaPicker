@@ -4,6 +4,30 @@ from .node import Picker, GroupPicker
 import os
 
 
+def change_picker_size(parent, scene):
+    w = 20
+    h = 20
+    sel = scene.get_selected_all_pick_nodes()
+    if len(sel) > 0:
+        w = sel[0].width
+        h = sel[0].height
+    w, h, result = CanvasSizeInputDialog.get_canvas_size(parent, w, h)
+    if not result:
+        return
+    for _n in scene.get_selected_all_pick_nodes():
+        _n.width = w
+        _n.height = h
+        _n.update()
+
+
+def node_change_color(self):
+    color = QtWidgets.QColorDialog.getColor(QtGui.QColor(60, 60, 60, 255), self)
+    if not color.isValid():
+        return
+    for _n in self.scene.get_selected_all_pick_nodes():
+        _n.bg_color = color
+        _n.update()
+
 class MenuBar(QtWidgets.QMenuBar):
 
     def __add_separator(self, menu, label):
@@ -29,8 +53,8 @@ class MenuBar(QtWidgets.QMenuBar):
         _pick.setTearOffEnabled(True)
         _pick.setWindowTitle('Picker')
 
-        _pick.addAction('Color', self.node_change_color)
-        _pick.addAction('Size', self.picker_size)
+        _pick.addAction('Color', lambda: node_change_color(self))
+        _pick.addAction('Size', lambda: change_picker_size(self, self.scene))
         _pick.addAction('Set WireFrame Color', self.set_wire_frame_color)
         self.__add_separator(_pick, 'Add')
         _pick.addAction('Picker', lambda: self.view.create_nods_from_dcc_selection(self.view.get_view_center_pos()))
@@ -92,32 +116,9 @@ class MenuBar(QtWidgets.QMenuBar):
         self.view.add_node_on_center(
             GroupPicker(member_nodes_id=[_item.id for _item in self.selectedItems() if isinstance(_item, Picker)]))
 
-    def picker_size(self):
-        w = 20
-        h = 20
-        sel = self.scene.get_selected_all_pick_nodes()
-        if len(sel) > 0:
-            w = sel[0].width
-            h = sel[0].height
-        w, h, result = CanvasSizeInputDialog.get_canvas_size(self, w, h)
-        if not result:
-            return
-        for _n in self.scene.get_selected_all_pick_nodes():
-            _n.width = w
-            _n.height = h
-            _n.update()
-
     def set_wire_frame_color(self):
         for _n in self.scene.get_selected_pick_nodes():
             _n.bg_color = self.get_node_color(_n.get_dcc_node()[0])
-            _n.update()
-
-    def node_change_color(self):
-        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(60, 60, 60, 255), self)
-        if not color.isValid():
-            return
-        for _n in self.scene.get_selected_all_pick_nodes():
-            _n.bg_color = color
             _n.update()
 
     def get_node_color(self, n):
@@ -202,44 +203,42 @@ class EditToolWidget(QtWidgets.QWidget):
             else:
                 button.setStyleSheet('background-color: rgb(93,93,93);')
 
-        def _create_toggle_button(icon_file, toggle_value_name):
+        def _create_button(icon_file, tooltip):
             _btn = QtWidgets.QPushButton()
-            _btn.pressed.connect(lambda: _toggle_change(toggle_value_name, _btn))
             pixmap = QtGui.QPixmap('{0}/icons/{1}.png'.format(_self_dir, icon_file))
             _icon = QtGui.QIcon(pixmap)
             _btn.setIcon(_icon)
             _btn.setIconSize(size)
             _btn.setFixedSize(size)
-            _btn.setToolTip(icon_file)
+            _btn.setToolTip(tooltip)
             self.hbox.addWidget(_btn)
             return _btn
 
-        # self.select_button = _create_toggle_button('select', 'select_mode')
+        def _create_toggle_button(icon_file, toggle_value_name):
+            _btn = _create_button(icon_file, icon_file)
+            _btn.pressed.connect(lambda: _toggle_change(toggle_value_name, _btn))
 
-        self.bgimage_button = _create_toggle_button('bgimage', 'is_bg_image_selectable')
+        _create_toggle_button('position', 'is_node_movable')
 
-        self.hbox.addSpacing(5)
+        self.hbox.addSpacing(8)
 
-        self.position_button = _create_toggle_button('position', 'is_node_movable')
+        _create_toggle_button('bgimage', 'is_bg_image_selectable')
 
-        self.hbox.addSpacing(5)
+        self.hbox.addSpacing(8)
 
-        self.plus_button = QtWidgets.QPushButton()
-        pixmap = QtGui.QPixmap('{0}/icons/plus.png'.format(_self_dir))
-        button_icon = QtGui.QIcon(pixmap)
-        self.plus_button.setIcon(button_icon)
-        self.plus_button.setIconSize(size)
-        self.plus_button.setFixedSize(size)
-        self.plus_button.setToolTip('Reload')
-        self.hbox.addWidget(self.plus_button)
+        self.plus_button = _create_button('plus', 'plus')
+        self.plus_button.pressed.connect(self.scene.add_to_group)
+        self.minus_button = _create_button('minus', 'minus')
+        self.minus_button.pressed.connect(self.scene.remove_from_group)
 
-        self.minus_button = QtWidgets.QPushButton()
-        pixmap = QtGui.QPixmap('{0}/icons/minus.png'.format(_self_dir))
-        button_icon = QtGui.QIcon(pixmap)
-        self.minus_button.setIcon(button_icon)
-        self.minus_button.setIconSize(size)
-        self.minus_button.setFixedSize(size)
-        self.minus_button.setToolTip('Reload')
-        self.hbox.addWidget(self.minus_button)
+        self.hbox.addSpacing(8)
+
+        self.scale_button = _create_button('scale', 'Change Picker Size')
+        self.scale_button.pressed.connect(lambda: change_picker_size(self, self.scene))
+
+        self.hbox.addSpacing(8)
+
+        self.color_button = _create_button('color', 'Change Picker Color')
+        self.color_button.pressed.connect(lambda: node_change_color(self))
 
         self.hbox.addStretch(1)
