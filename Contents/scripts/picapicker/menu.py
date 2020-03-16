@@ -28,6 +28,7 @@ def node_change_color(self):
         _n.bg_color = color
         _n.update()
 
+
 class MenuBar(QtWidgets.QMenuBar):
 
     def __add_separator(self, menu, label):
@@ -211,6 +212,7 @@ class EditToolWidget(QtWidgets.QWidget):
             _btn.setIconSize(size)
             _btn.setFixedSize(size)
             _btn.setToolTip(tooltip)
+            # _btn.setFlat(True)
             self.hbox.addWidget(_btn)
             return _btn
 
@@ -234,11 +236,11 @@ class EditToolWidget(QtWidgets.QWidget):
         self.hbox.addSpacing(8)
 
         self.scale_button = _create_button('scale', 'Change Picker Size')
-        self.scale_button.pressed.connect(lambda: change_picker_size(self, self.scene))
+        self.scale_button.clicked.connect(lambda: change_picker_size(self, self.scene))
 
         self.hbox.addSpacing(8)
 
         self.color_button = _create_button('color', 'Change Picker Color')
-        self.color_button.pressed.connect(lambda: node_change_color(self))
+        self.color_button.clicked.connect(lambda: node_change_color(self))
 
         self.hbox.addStretch(1)
