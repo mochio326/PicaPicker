@@ -217,7 +217,7 @@ class View(QtWidgets.QGraphicsView):
             # 等倍scaleかつ回転してないはずでscale取り出す…
             new_scale = self.matrix().m11()
             delta = (self.mapToScene(event.pos()) - self.mapToScene(self.prev_pos)) * -1.0 * new_scale
-            center = QtCore.QPoint(self.viewport().width() / 2 + delta.x(), self.viewport().height() / 2 + delta.y())
+            center = QtCore.QPoint(self.viewport().width() / 2 + delta.x(), self.viewport().height() / 2 + delta.y() + 1)
             new_center = self.mapToScene(center)
             self.centerOn(new_center)
             self.prev_pos = event.pos()
