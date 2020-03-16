@@ -249,8 +249,10 @@ class PickerWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
     def menu_bar_visibility(self):
         if self.scene.enable_edit:
             self.menu_bar.show()
+            self.edit_tool.show()
         else:
             self.menu_bar.hide()
+            self.edit_tool.hide()
 
 
 class Tab(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
