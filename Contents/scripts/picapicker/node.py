@@ -249,6 +249,10 @@ class Picker(Node):
         self.brush.setColor(self.bg_color)
         painter.setBrush(self.brush)
         if self.isSelected():
+            _b = QtGui.QBrush()
+            _b.setStyle(QtCore.Qt.Dense3Pattern)
+            _b.setColor(self.bg_color)
+            painter.setBrush(_b)
             painter.setPen(self.sel_pen)
         elif self.group_select:
             _b = QtGui.QBrush()
@@ -336,6 +340,41 @@ class GroupPicker(Node):
 
     def remove(self, nodes):
         self.member_nodes_id -= {_n.id for _n in nodes}
+
+
+class ScriptButton(Node):
+    DEF_Z_VALUE = 10
+
+    def get_save_data(self):
+        return (
+            self.id,
+            self.x(),
+            self.y(),
+            self.zValue(),
+            self.width,
+            self.height,
+            self.label,
+            self.bg_color.rgba()
+        )
+
+    def load_data(self, data):
+        self.id = data.value(0)
+        self.setX(data.value(1))
+        self.setY(data.value(2))
+        self.setZValue(data.value(3))
+        self.width = data.value(4)
+        self.height = data.value(5)
+        self.label = data.value(7)
+        self.bg_color.setRgba(int(data.value(8)))
+
+    def __init__(self, member_nodes_id=None, *args, **kwargs):
+        super(ScriptButton, self).__init__(*args, **kwargs)
+        # self.setAcceptDrops(True)
+
+    def mouseReleaseEvent(self, event):
+        super(ScriptButton, self).mouseReleaseEvent(event)
+
+
 
 
 class BgNode(Node):
